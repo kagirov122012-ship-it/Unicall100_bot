@@ -128,28 +128,25 @@ async def youtube(msg: types.Message):
         return
 
     url = msg.text.strip()
-    wait_msg = await msg.answer("⏳ Скачиваю видео...")
+    wait_msg = await msg.answer("⏳ Загружаю...")
 
     try:
         ydl_opts = {
-            # 🔥 КЛЮЧ: вообще без выбора формата
-            'format': 'worst/best',
+            # 🔥 ВАЖНО: полностью убираем выбор формата
+            'format': '0/1/2/3/4/5/6/7/best',
             'cookiefile': 'cookies.txt',
             'outtmpl': 'video.%(ext)s',
 
             'noplaylist': True,
-            'merge_output_format': 'mp4',
-
             'quiet': True,
             'no_warnings': True,
 
-            # страховка от падений
             'retries': 10,
             'fragment_retries': 10,
-            'socket_timeout': 20,
+            'socket_timeout': 30,
 
-            # отключаем DASH/сложные потоки
-            'prefer_insecure': True,
+            # отключаем сложные схемы DASH
+            'format_sort': ['ext'],
         }
 
         with YoutubeDL(ydl_opts) as ydl:
@@ -157,10 +154,9 @@ async def youtube(msg: types.Message):
 
             filename = ydl.prepare_filename(info)
 
-            # fallback если имя не совпало
             if not os.path.exists(filename):
                 base = os.path.splitext(filename)[0]
-                for ext in [".mp4", ".mkv", ".webm"]:
+                for ext in [".mp4", ".webm", ".mkv"]:
                     if os.path.exists(base + ext):
                         filename = base + ext
                         break
@@ -169,11 +165,7 @@ async def youtube(msg: types.Message):
 
         video = FSInputFile(filename)
 
-        await msg.answer_video(
-            video=video,
-            caption=f"🎬 {title}"
-        )
-
+        await msg.answer_video(video=video, caption=f"🎬 {title}")
         await wait_msg.delete()
 
         if os.path.exists(filename):
