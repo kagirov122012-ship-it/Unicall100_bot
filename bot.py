@@ -114,24 +114,30 @@ async def youtube(msg: types.Message):
     await msg.answer("⏳ Загружаю видео...")
 
     try:
-        with YoutubeDL({
+        ydl_opts = {
             'format': 'best[height<=720]',
+            'outtmpl': 'video.%(ext)s',
             'quiet': True,
             'no_warnings': True
-        }) as ydl:
+        }
 
-            info = ydl.extract_info(url, download=False)
-            video_url = info.get("url")
+        with YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
+            filename = ydl.prepare_filename(info)
             title = info.get("title", "Видео")[:100]
 
-            await msg.answer_video(
-                video_url,
-                caption=f"🎬 {title}"
-            )
+        video = types.FSInputFile(filename)
+
+        await msg.answer_video(
+            video,
+            caption=f"🎬 {title}"
+        )
+
+        os.remove(filename)
 
     except Exception as e:
         logging.error(f"YouTube ошибка: {e}")
-        await msg.answer("⚠️ Не удалось скачать видео")
+        await msg.answer(f"⚠️ Ошибка: {e}")
 
 
 # ================= КАЛЬКУЛЯТОР =================
