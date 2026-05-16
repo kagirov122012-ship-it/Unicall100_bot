@@ -1,0 +1,20 @@
+{
+  "projects": {
+    "/data/data/com.termux/files/home": {
+      "projectPath": "/data/data/com.termux/files/home",
+      "name": "zippy-surprise",
+      "project": "3a3cd12e-feac-4aa2-9319-5cdeb8a64c10",
+      "environment": "1c902abc-1b6f-485f-97b8-e8a3d1b9a054",
+      "environmentName": "production",
+      "service": "3eb0aa8c-5451-4656-8241-152e84572c61"
+    }
+  },
+  "user": {
+    "id": "9e92f1dc-8f82-4b8e-915f-db3d0258ab01",
+    "token": null,
+    "accessToken": "va_Ek_pzIsC61swtnlMU3zQPcTGjHtc6SsEHfBlpfsp",
+    "refreshToken": "3kakAG7cusb-i6u3s3HN5Qztq_gf6hHj8iLzXKo7zS_",
+    "tokenExpiresAt": 1778932894
+  },
+  "linkedFunctions": null
+}
