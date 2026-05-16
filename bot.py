@@ -128,17 +128,24 @@ async def youtube(msg: types.Message):
         return
 
     url = msg.text.strip()
-    wait_msg = await msg.answer("⏳ Обрабатываю видео...")
+    wait_msg = await msg.answer("⏳ Скачиваю видео...")
 
     try:
-        print("START YT-DLP:", url)
-
         ydl_opts = {
-            'format': 'best',
+            # 🔥 ВАЖНО: НИКАКИХ format constraints
+            'format': None,
             'cookiefile': 'cookies.txt',
             'outtmpl': 'video.%(ext)s',
             'noplaylist': True,
-            'quiet': False,   # 🔥 ВАЖНО: покажет реальные ошибки
+            'merge_output_format': 'mp4',
+
+            'quiet': True,
+            'no_warnings': True,
+
+            # страховка
+            'retries': 5,
+            'fragment_retries': 5,
+            'socket_timeout': 20,
         }
 
         with YoutubeDL(ydl_opts) as ydl:
@@ -146,7 +153,7 @@ async def youtube(msg: types.Message):
 
             filename = ydl.prepare_filename(info)
 
-            # fallback если расширение другое
+            # fallback поиск файла
             if not os.path.exists(filename):
                 base = os.path.splitext(filename)[0]
                 for ext in [".mp4", ".webm", ".mkv"]:
@@ -169,9 +176,7 @@ async def youtube(msg: types.Message):
             os.remove(filename)
 
     except Exception as e:
-        # 🔥 теперь покажет ПОЛНУЮ причину
         await wait_msg.edit_text(f"⚠️ ОШИБКА:\n{repr(e)}")
-        print("YT ERROR:", repr(e))
 # ================= КАЛЬКУЛЯТОР =================
 @dp.message(
     lambda msg:
