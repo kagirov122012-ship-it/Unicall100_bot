@@ -114,6 +114,7 @@ async def password(msg: types.Message):
 
 # ================= YOUTUBE =================
 from yt_dlp import YoutubeDL
+from aiogram import types
 from aiogram.types import FSInputFile
 import os
 
@@ -123,19 +124,20 @@ async def youtube(msg: types.Message):
     if not msg.text:
         return
 
-    # проверяем, что это ссылка YouTube
+    # проверяем ссылку
     if "youtube.com" not in msg.text and "youtu.be" not in msg.text:
         return
 
     url = msg.text.strip()
 
-    await msg.answer("⏳ Скачиваю видео...")
+    wait_msg = await msg.answer("⏳ Скачиваю видео...")
 
     try:
         ydl_opts = {
-            'format': 'best[height<=720]',
+            'format': 'bestvideo+bestaudio/best',
             'cookiefile': 'cookies.txt',
             'outtmpl': 'video.%(ext)s',
+            'merge_output_format': 'mp4',
             'noplaylist': True,
             'quiet': True,
             'no_warnings': True
@@ -144,6 +146,12 @@ async def youtube(msg: types.Message):
         with YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             filename = ydl.prepare_filename(info)
+
+            # если yt-dlp склеил в mp4, а имя старое
+            if not os.path.exists(filename):
+                base = os.path.splitext(filename)[0]
+                filename = base + ".mp4"
+
             title = info.get("title", "Видео")[:100]
 
         video = FSInputFile(filename)
@@ -153,10 +161,12 @@ async def youtube(msg: types.Message):
             caption=f"🎬 {title}"
         )
 
+        await wait_msg.delete()
+
         os.remove(filename)
 
     except Exception as e:
-        await msg.answer(f"⚠️ Ошибка:\n{e}")
+        await wait_msg.edit_text(f"⚠️ Ошибка:\n{e}")
 # ================= КАЛЬКУЛЯТОР =================
 @dp.message(
     lambda msg:
