@@ -118,7 +118,12 @@ async def youtube(msg: types.Message):
             'format': 'best[height<=720]',
             'outtmpl': 'video.%(ext)s',
             'quiet': True,
-            'no_warnings': True
+            'no_warnings': True,
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['android']
+                }
+            }
         }
 
         with YoutubeDL(ydl_opts) as ydl:
@@ -137,8 +142,7 @@ async def youtube(msg: types.Message):
 
     except Exception as e:
         logging.error(f"YouTube ошибка: {e}")
-await msg.answer(f"⚠️ Ошибка: {e}")
-
+        await msg.answer(f"⚠️ Ошибка: {e}")
 # ================= КАЛЬКУЛЯТОР =================
 @dp.message(
     lambda msg:
