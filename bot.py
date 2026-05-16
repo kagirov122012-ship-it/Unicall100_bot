@@ -124,33 +124,34 @@ async def youtube(msg: types.Message):
     if not msg.text:
         return
 
-    # Проверяем, что это YouTube ссылка
     if "youtube.com" not in msg.text and "youtu.be" not in msg.text:
         return
 
     url = msg.text.strip()
-
     wait_msg = await msg.answer("⏳ Скачиваю видео...")
 
     try:
         ydl_opts = {
-            'format': 'best',
+            # 🔥 самый стабильный авто-выбор формата
+            'format': 'bv*+ba/best/bestvideo+bestaudio',
             'cookiefile': 'cookies.txt',
             'outtmpl': 'video.%(ext)s',
             'merge_output_format': 'mp4',
             'noplaylist': True,
             'quiet': True,
-            'no_warnings': True
+            'no_warnings': True,
+            'retries': 3,
+            'fragment_retries': 3,
         }
 
         with YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             filename = ydl.prepare_filename(info)
 
-            # если расширение поменялось
+            # поиск файла если расширение поменялось
             if not os.path.exists(filename):
                 base = os.path.splitext(filename)[0]
-                for ext in ['.mp4', '.mkv', '.webm']:
+                for ext in [".mp4", ".mkv", ".webm"]:
                     if os.path.exists(base + ext):
                         filename = base + ext
                         break
