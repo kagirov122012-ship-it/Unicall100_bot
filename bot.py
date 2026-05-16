@@ -114,31 +114,27 @@ async def youtube(msg: types.Message):
     await msg.answer("⏳ Загружаю видео...")
 
     try:
-        ydl_opts = {
-            'format': 'best[height<=720]',
-            'outtmpl': 'video.%(ext)s',
-            'quiet': True,
-            'no_warnings': True,
-            'extractor_args': {
-                'youtube': {
-                    'player_client': ['android']
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                "https://api.cobalt.tools/api/json",
+                json={
+                    "url": url,
+                    "vCodec": "h264",
+                    "vQuality": "720",
+                    "filenamePattern": "basic"
                 }
-            }
-        }
+            ) as resp:
+                data = await resp.json()
 
-        with YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-            filename = ydl.prepare_filename(info)
-            title = info.get("title", "Видео")[:100]
+        if data.get("status") == "stream":
+            video_url = data["url"]
 
-        video = types.FSInputFile(filename)
-
-        await msg.answer_video(
-            video,
-            caption=f"🎬 {title}"
-        )
-
-        os.remove(filename)
+            await msg.answer_video(
+                video_url,
+                caption="🎬 Готово!"
+            )
+        else:
+            await msg.answer("⚠️ Не удалось получить видео")
 
     except Exception as e:
         logging.error(f"YouTube ошибка: {e}")
