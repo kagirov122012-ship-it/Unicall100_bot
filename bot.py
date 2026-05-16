@@ -112,7 +112,7 @@ async def password(msg: types.Message):
     )
 
 
-# ================= YOUTUBE =================
+# ================= YOUTUBE ================from yt_dlp import YoutubeDL
 from yt_dlp import YoutubeDL
 from aiogram import types
 from aiogram.types import FSInputFile
@@ -132,20 +132,24 @@ async def youtube(msg: types.Message):
 
     try:
         ydl_opts = {
-            # 🔥 ВАЖНО: НИКАКИХ format constraints
-            'format': None,
+            # 🔥 КЛЮЧ: вообще без выбора формата
+            'format': 'worst/best',
             'cookiefile': 'cookies.txt',
             'outtmpl': 'video.%(ext)s',
+
             'noplaylist': True,
             'merge_output_format': 'mp4',
 
             'quiet': True,
             'no_warnings': True,
 
-            # страховка
-            'retries': 5,
-            'fragment_retries': 5,
+            # страховка от падений
+            'retries': 10,
+            'fragment_retries': 10,
             'socket_timeout': 20,
+
+            # отключаем DASH/сложные потоки
+            'prefer_insecure': True,
         }
 
         with YoutubeDL(ydl_opts) as ydl:
@@ -153,10 +157,10 @@ async def youtube(msg: types.Message):
 
             filename = ydl.prepare_filename(info)
 
-            # fallback поиск файла
+            # fallback если имя не совпало
             if not os.path.exists(filename):
                 base = os.path.splitext(filename)[0]
-                for ext in [".mp4", ".webm", ".mkv"]:
+                for ext in [".mp4", ".mkv", ".webm"]:
                     if os.path.exists(base + ext):
                         filename = base + ext
                         break
