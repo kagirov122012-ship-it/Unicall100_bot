@@ -107,39 +107,42 @@ async def password(msg: types.Message):
 
 
 # ================= YOUTUBE =================
+import os
+from yt_dlp import YoutubeDL
+from aiogram.types import FSInputFile
+
 @dp.message(lambda msg: msg.text and ('youtube.com' in msg.text or 'youtu.be' in msg.text))
 async def youtube(msg: types.Message):
     url = msg.text.strip()
 
-    await msg.answer("⏳ Загружаю видео...")
+    await msg.answer("⏳ Скачиваю видео, подожди...")
 
     try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                "https://api.cobalt.tools/api/json",
-                headers={
-                    "Accept": "application/json",
-                    "Content-Type": "application/json"
-                },
-                json={
-                    "url": url
-                }
-            ) as resp:
-                data = await resp.json()
+        ydl_opts = {
+            'format': 'best[height<=720]',
+            'outtmpl': 'video.%(ext)s',
+            'noplaylist': True,
+            'quiet': True,
+            'no_warnings': True,
+        }
 
-        if data.get("status") in ["stream", "redirect", "tunnel"]:
-            await msg.answer_video(
-                data["url"],
-                caption="🎬 Готово!"
-            )
-        else:
-            await msg.answer(f"⚠️ API ответ: {data}")
+        with YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
+            filename = ydl.prepare_filename(info)
+            title = info.get("title", "Видео")[:100]
+
+        video = FSInputFile(filename)
+
+        await msg.answer_video(
+            video,
+            caption=f"🎬 {title}"
+        )
+
+        os.remove(filename)
 
     except Exception as e:
-        logging.error(f"YouTube ошибка: {e}")
-        await msg.answer(f"⚠️ Ошибка: {e}")
+        await msg.answer(f"⚠️ Ошибка загрузки:\n{e}") 
 
-# ================= ГЛОБАЛЬНЫЕ ОШИБКИ =================
 @dp.errors()
 async def error_handler(event):
     logging.error(f"Ошибка: {event.exception}")
