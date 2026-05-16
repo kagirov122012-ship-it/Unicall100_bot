@@ -7,6 +7,7 @@ import aiohttp
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
+from aiogram.types import FSInputFile
 from yt_dlp import YoutubeDL
 
 # ================= ЛОГИ =================
@@ -107,65 +108,60 @@ async def password(msg: types.Message):
 
 
 # ================= YOUTUBE =================
-import os
-import asyncio
-from yt_dlp import YoutubeDL
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, FSInputFile
-
-
-# ===== КНОПКИ =====
-@dp.message(lambda msg: msg.text and ('youtube.com' in msg.text or 'youtu.be' in msg.text))
+@dp.message()
 async def youtube(msg: types.Message):
-    url = msg.text.strip()
+    if not msg.text:
+        return
 
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [
-            InlineKeyboardButton(text="🎬 720p", callback_data=f"yt|720|{url}"),
-            InlineKeyboardButton(text="🔥 1080p", callback_data=f"yt|1080|{url}")
-        ]
-    ])
+    text = msg.text.strip()
 
-    await msg.answer("Выбери качество 👇", reply_markup=keyboard)
+    # только youtube ссылки
+    if "youtube.com" not in text and "youtu.be" not in text:
+        # если не ютуб — передаём дальше калькулятору
+        if any(op in text for op in "+-*/") and not text.startswith("/"):
+            result = calc(text)
+            if result is not None:
+                await msg.answer(f"🧮 `{result}`", parse_mode="Markdown")
+            else:
+                await msg.answer("❌ Ошибка")
+        return
 
+    await msg.answer("⏳ Скачиваю видео...")
 
-# ===== ЗАГРУЗКА =====
-@dp.callback_query(lambda c: c.data.startswith("yt|"))
-async def yt_download(call: types.CallbackQuery):
     try:
-        _, quality, url = call.data.split("|")
-
-        status_msg = await call.message.answer("⏳ Скачиваю видео...")
-
-        def progress_hook(d):
-            if d['status'] == 'downloading':
-                percent = d.get('_percent_str', '0%').strip()
-                asyncio.create_task(status_msg.edit_text(f"⬇️ {percent}"))
-
         ydl_opts = {
-            'format': f'best[height<={quality}]',
+            'format': 'best[height<=720]',
             'outtmpl': 'video.%(ext)s',
             'noplaylist': True,
             'quiet': True,
-            'progress_hooks': [progress_hook],
+            'no_warnings': True
         }
 
         with YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
+            info = ydl.extract_info(text, download=True)
             filename = ydl.prepare_filename(info)
             title = info.get("title", "Видео")[:100]
 
         video = FSInputFile(filename)
 
-        await call.message.answer_video(
+        await msg.answer_video(
             video,
             caption=f"🎬 {title}"
         )
 
         os.remove(filename)
-        await status_msg.delete()
 
     except Exception as e:
-        await call.message.answer(f"⚠️ Ошибка:\n{e}")
+        logging.error(f"YouTube ошибка: {e}")
+        await msg.answer(f"⚠️ Ошибка загрузки:\n{e}")
+
+
+# ================= ГЛОБАЛЬНЫЕ ОШИБКИ =================
+@dp.errors()
+async def error_handler(event):
+    logging.error(f"Ошибка: {event.exception}")
+    return True
+
 
 # ================= АВТОПЕРЕЗАПУСК =================
 async def main():
