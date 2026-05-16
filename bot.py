@@ -10,6 +10,7 @@ from aiogram.filters import Command
 from aiogram.types import FSInputFile
 from yt_dlp import YoutubeDL
 
+
 # ================= ЛОГИ =================
 logging.basicConfig(
     level=logging.INFO,
@@ -76,14 +77,18 @@ async def start(msg: types.Message):
         "📥 YouTube ссылка — скачаю видео\n"
         "/course — курс валют\n"
         "/pass — пароль\n"
-        "🧮 Пример 2+2"
+        "🧮 Пример: 2+2"
     )
 
 
 # ================= /help =================
 @dp.message(Command("help"))
 async def help_cmd(msg: types.Message):
-    await msg.answer("/course /pass\nИли отправь YouTube ссылку или пример")
+    await msg.answer(
+        "/course — курс валют\n"
+        "/pass — пароль\n"
+        "Или отправь YouTube ссылку / пример 2+2"
+    )
 
 
 # ================= /course =================
@@ -113,18 +118,10 @@ async def youtube(msg: types.Message):
     if not msg.text:
         return
 
-    text = msg.text.strip()
-
-    # только youtube ссылки
-    if "youtube.com" not in text and "youtu.be" not in text:
-        # если не ютуб — передаём дальше калькулятору
-        if any(op in text for op in "+-*/") and not text.startswith("/"):
-            result = calc(text)
-            if result is not None:
-                await msg.answer(f"🧮 `{result}`", parse_mode="Markdown")
-            else:
-                await msg.answer("❌ Ошибка")
+    if "youtube.com" not in msg.text and "youtu.be" not in msg.text:
         return
+
+    url = msg.text.strip()
 
     await msg.answer("⏳ Скачиваю видео...")
 
@@ -138,7 +135,7 @@ async def youtube(msg: types.Message):
         }
 
         with YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(text, download=True)
+            info = ydl.extract_info(url, download=True)
             filename = ydl.prepare_filename(info)
             title = info.get("title", "Видео")[:100]
 
@@ -153,7 +150,25 @@ async def youtube(msg: types.Message):
 
     except Exception as e:
         logging.error(f"YouTube ошибка: {e}")
-        await msg.answer(f"⚠️ Ошибка загрузки:\n{e}")
+        await msg.answer(f"⚠️ Ошибка:\n{e}")
+
+
+# ================= КАЛЬКУЛЯТОР =================
+@dp.message(
+    lambda msg:
+    msg.text
+    and any(op in msg.text for op in "+-*/")
+    and "youtube.com" not in msg.text
+    and "youtu.be" not in msg.text
+    and not msg.text.startswith("/")
+)
+async def calculator(msg: types.Message):
+    result = calc(msg.text.strip())
+
+    if result is not None:
+        await msg.answer(f"🧮 `{result}`", parse_mode="Markdown")
+    else:
+        await msg.answer("❌ Ошибка")
 
 
 # ================= ГЛОБАЛЬНЫЕ ОШИБКИ =================
