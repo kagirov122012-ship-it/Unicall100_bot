@@ -128,34 +128,38 @@ async def youtube(msg: types.Message):
         return
 
     url = msg.text.strip()
-    wait_msg = await msg.answer("⏳ Пытаюсь скачать...")
+    wait_msg = await msg.answer("⏳ Обрабатываю видео...")
 
     try:
         ydl_opts = {
-            # 🔥 КЛЮЧ: отключаем format selection полностью
-            'format': None,
-
+            # 🚨 ВАЖНО: вообще НЕТ format selection
+            'format': 'best[ext=mp4]/best',
             'cookiefile': 'cookies.txt',
-            'outtmpl': 'video.%(ext)s',
 
+            'outtmpl': 'video.%(ext)s',
             'noplaylist': True,
+
             'quiet': True,
             'no_warnings': True,
 
-            # 🔥 используем старый стабильный downloader
-            'downloader': 'ffmpeg',
+            # отключаем DASH/сложные потоки
+            'concurrent_fragment_downloads': 1,
 
-            'retries': 15,
-            'fragment_retries': 15,
+            # fallback режим
+            'ignoreerrors': True,
+            'continuedl': True,
+
+            'retries': 20,
+            'fragment_retries': 20,
             'socket_timeout': 30,
-
-            # fallback режим yt-dlp
-            'extract_flat': False,
-            'force_generic_extractor': False,
         }
 
         with YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
+
+            if not info:
+                await wait_msg.edit_text("⚠️ Не удалось получить данные видео")
+                return
 
             filename = ydl.prepare_filename(info)
 
