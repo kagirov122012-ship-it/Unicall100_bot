@@ -108,22 +108,45 @@ async def password(msg: types.Message):
 
 # ================= YOUTUBE =================
 import os
+import asyncio
 from yt_dlp import YoutubeDL
-from aiogram.types import FSInputFile
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, FSInputFile
 
+
+# ===== КНОПКИ =====
 @dp.message(lambda msg: msg.text and ('youtube.com' in msg.text or 'youtu.be' in msg.text))
 async def youtube(msg: types.Message):
     url = msg.text.strip()
 
-    await msg.answer("⏳ Скачиваю видео, подожди...")
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="🎬 720p", callback_data=f"yt|720|{url}"),
+            InlineKeyboardButton(text="🔥 1080p", callback_data=f"yt|1080|{url}")
+        ]
+    ])
 
+    await msg.answer("Выбери качество 👇", reply_markup=keyboard)
+
+
+# ===== ЗАГРУЗКА =====
+@dp.callback_query(lambda c: c.data.startswith("yt|"))
+async def yt_download(call: types.CallbackQuery):
     try:
+        _, quality, url = call.data.split("|")
+
+        status_msg = await call.message.answer("⏳ Скачиваю видео...")
+
+        def progress_hook(d):
+            if d['status'] == 'downloading':
+                percent = d.get('_percent_str', '0%').strip()
+                asyncio.create_task(status_msg.edit_text(f"⬇️ {percent}"))
+
         ydl_opts = {
-            'format': 'best[height<=720]',
+            'format': f'best[height<={quality}]',
             'outtmpl': 'video.%(ext)s',
             'noplaylist': True,
             'quiet': True,
-            'no_warnings': True,
+            'progress_hooks': [progress_hook],
         }
 
         with YoutubeDL(ydl_opts) as ydl:
@@ -133,21 +156,16 @@ async def youtube(msg: types.Message):
 
         video = FSInputFile(filename)
 
-        await msg.answer_video(
+        await call.message.answer_video(
             video,
             caption=f"🎬 {title}"
         )
 
         os.remove(filename)
+        await status_msg.delete()
 
     except Exception as e:
-        await msg.answer(f"⚠️ Ошибка загрузки:\n{e}") 
-
-@dp.errors()
-async def error_handler(event):
-    logging.error(f"Ошибка: {event.exception}")
-    return True
-
+        await call.message.answer(f"⚠️ Ошибка:\n{e}")
 
 # ================= АВТОПЕРЕЗАПУСК =================
 async def main():
