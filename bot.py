@@ -128,54 +128,72 @@ async def youtube(msg: types.Message):
         return
 
     url = msg.text.strip()
-    wait_msg = await msg.answer("⏳ Обрабатываю видео...")
+    wait_msg = await msg.answer("⏳ Скачиваю видео...")
 
-    try:
-        ydl_opts = {
-            # 🔥 САМЫЙ УНИВЕРСАЛЬНЫЙ РЕЖИМ
-            'format': 'worst[ext=mp4]/best[ext=mp4]/best',
+    ydl_opts_list = [
+        # 1. максимально нормальный вариант
+        {
+            'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+            'cookiefile': 'cookies.txt',
+            'outtmpl': 'video.%(ext)s',
+            'merge_output_format': 'mp4',
+            'noplaylist': True,
+            'quiet': True,
+        },
+        # 2. fallback
+        {
+            'format': 'best',
             'cookiefile': 'cookies.txt',
             'outtmpl': 'video.%(ext)s',
             'noplaylist': True,
-            'merge_output_format': 'mp4',
             'quiet': True,
-            'no_warnings': True,
+        },
+        # 3. самый жёсткий fallback (почти всегда работает)
+        {
+            'format': 'worst',
+            'cookiefile': 'cookies.txt',
+            'outtmpl': 'video.%(ext)s',
+            'noplaylist': True,
+            'quiet': True,
+        },
+    ]
 
-            # защита от падений
-            'retries': 10,
-            'fragment_retries': 10,
-            'socket_timeout': 20,
+    try:
+        filename = None
+        info = None
 
-            # если всё сломано — берёт хоть что-то
-            'prefer_free_formats': True,
-        }
+        for opts in ydl_opts_list:
+            try:
+                with YoutubeDL(opts) as ydl:
+                    info = ydl.extract_info(url, download=True)
+                    filename = ydl.prepare_filename(info)
 
-        with YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-
-            filename = ydl.prepare_filename(info)
-
-            # fallback на реальные файлы
-            if not os.path.exists(filename):
-                base = os.path.splitext(filename)[0]
-                for ext in [".mp4", ".webm", ".mkv"]:
-                    if os.path.exists(base + ext):
-                        filename = base + ext
+                    if os.path.exists(filename):
                         break
 
-            title = info.get("title", "Видео")[:100]
+                    base = os.path.splitext(filename)[0]
+                    for ext in [".mp4", ".mkv", ".webm"]:
+                        if os.path.exists(base + ext):
+                            filename = base + ext
+                            break
+
+                if filename and os.path.exists(filename):
+                    break
+
+            except Exception:
+                continue
+
+        if not filename or not os.path.exists(filename):
+            await wait_msg.edit_text("⚠️ Не удалось скачать видео")
+            return
 
         video = FSInputFile(filename)
+        title = (info or {}).get("title", "Видео")[:100]
 
-        await msg.answer_video(
-            video=video,
-            caption=f"🎬 {title}"
-        )
-
+        await msg.answer_video(video=video, caption=f"🎬 {title}")
         await wait_msg.delete()
 
-        if os.path.exists(filename):
-            os.remove(filename)
+        os.remove(filename)
 
     except Exception as e:
         await wait_msg.edit_text(f"⚠️ Ошибка:\n{e}")
