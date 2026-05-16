@@ -116,46 +116,31 @@ async def youtube(msg: types.Message):
     try:
         async with aiohttp.ClientSession() as session:
             async with session.post(
-                "https://api.cobalt.tools/api/json",
+                "https://api.cobalt.best/",
+                headers={
+                    "Accept": "application/json",
+                    "Content-Type": "application/json",
+                    "User-Agent": "Unicall100Bot/1.0"
+                },
                 json={
                     "url": url,
-                    "vCodec": "h264",
-                    "vQuality": "720",
-                    "filenamePattern": "basic"
+                    "videoQuality": "720",
+                    "filenameStyle": "basic"
                 }
             ) as resp:
                 data = await resp.json()
 
-        if data.get("status") == "stream":
-            video_url = data["url"]
-
+        if data.get("status") in ["tunnel", "redirect"]:
             await msg.answer_video(
-                video_url,
+                data["url"],
                 caption="🎬 Готово!"
             )
         else:
-            await msg.answer("⚠️ Не удалось получить видео")
+            await msg.answer(f"⚠️ API ответ: {data}")
 
     except Exception as e:
         logging.error(f"YouTube ошибка: {e}")
         await msg.answer(f"⚠️ Ошибка: {e}")
-# ================= КАЛЬКУЛЯТОР =================
-@dp.message(
-    lambda msg:
-    msg.text
-    and any(op in msg.text for op in "+-*/")
-    and "youtube.com" not in msg.text
-    and not msg.text.startswith("/")
-)
-async def calculator(msg: types.Message):
-    result = calc(msg.text.strip())
-
-    if result is not None:
-        await msg.answer(f"🧮 `{result}`", parse_mode="Markdown")
-    else:
-        await msg.answer("❌ Ошибка")
-
-
 # ================= ГЛОБАЛЬНЫЕ ОШИБКИ =================
 @dp.errors()
 async def error_handler(event):
