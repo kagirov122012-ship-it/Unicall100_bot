@@ -128,3 +128,57 @@ git commit -m "replace youtube handler"
 git push
 fatal: unable to access 'https://github.com/kagirov122012-ship-it/Unicall100_bot.git/': Could not resolve host: github.com
 nano bot.py
+Is
+pwd
+ls
+git status
+git push
+nano bot.py
+git push
+nano bot.py
+git add .
+git commit -m "final youtube handler"
+git push
+nano bot.py
+git add .
+git commit -m "fix yt-dlp format fallback"
+git push
+nano bot.py
+git push
+git add .
+git commit -m "fix youtube stable format"
+git push
+nano bot.py
+git add .
+git commit -m "youtube multi fallback fix"
+git push
+nano bot.py
+git add .
+git commit -m "youtube debug final"
+git push
+nano bot.py
+git add .
+git commit -m "ultra stable youtube fix"
+git push
+nano bot.py
+git add .
+git commit -m "final yt fallback fix"
+git push
+nano bot.py
+git add .
+git commit -m "youtube final fix"
+git push
+nano bot.py
+git add .
+git commit -m "youtube real fix"
+git push
+nano bot.py
+git add .
+git commit -m "youtube fix"
+git push
+nano bit.py
+nano bot.py
+git add .
+git commit -m "youtube antilag"
+git push
+nano bot.py
