@@ -137,8 +137,7 @@ async def youtube(msg: types.Message):
 
     except Exception as e:
         logging.error(f"YouTube ошибка: {e}")
-        await msg.answer(f"⚠️ Ошибка: {e}")
-
+await msg.answer(f"⚠️ Ошибка: {e}")
 
 # ================= КАЛЬКУЛЯТОР =================
 @dp.message(
