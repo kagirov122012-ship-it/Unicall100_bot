@@ -128,27 +128,28 @@ async def youtube(msg: types.Message):
         return
 
     url = msg.text.strip()
-    wait_msg = await msg.answer("⏳ Обрабатываю видео...")
+    wait_msg = await msg.answer("⏳ Подключаюсь к YouTube...")
 
     try:
         ydl_opts = {
-            # 🚨 ВАЖНО: вообще НЕТ format selection
-            'format': 'best[ext=mp4]/best',
+            # 🔥 ключевой обход блоков
+            'format': 'best',
             'cookiefile': 'cookies.txt',
-
             'outtmpl': 'video.%(ext)s',
-            'noplaylist': True,
 
+            'noplaylist': True,
             'quiet': True,
             'no_warnings': True,
 
-            # отключаем DASH/сложные потоки
-            'concurrent_fragment_downloads': 1,
+            # 🔥 важный обход для YouTube блоков
+            'force_ipv4': True,
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['android', 'web'],
+                }
+            },
 
-            # fallback режим
-            'ignoreerrors': True,
-            'continuedl': True,
-
+            # fallback безопасность
             'retries': 20,
             'fragment_retries': 20,
             'socket_timeout': 30,
@@ -158,7 +159,7 @@ async def youtube(msg: types.Message):
             info = ydl.extract_info(url, download=True)
 
             if not info:
-                await wait_msg.edit_text("⚠️ Не удалось получить данные видео")
+                await wait_msg.edit_text("⚠️ YouTube заблокировал доступ (extract_info = пусто)")
                 return
 
             filename = ydl.prepare_filename(info)
