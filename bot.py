@@ -116,21 +116,18 @@ async def youtube(msg: types.Message):
     try:
         async with aiohttp.ClientSession() as session:
             async with session.post(
-                "https://api.cobalt.best/",
+                "https://api.cobalt.tools/api/json",
                 headers={
                     "Accept": "application/json",
-                    "Content-Type": "application/json",
-                    "User-Agent": "Unicall100Bot/1.0"
+                    "Content-Type": "application/json"
                 },
                 json={
-                    "url": url,
-                    "videoQuality": "720",
-                    "filenameStyle": "basic"
+                    "url": url
                 }
             ) as resp:
                 data = await resp.json()
 
-        if data.get("status") in ["tunnel", "redirect"]:
+        if data.get("status") in ["stream", "redirect", "tunnel"]:
             await msg.answer_video(
                 data["url"],
                 caption="🎬 Готово!"
@@ -141,6 +138,7 @@ async def youtube(msg: types.Message):
     except Exception as e:
         logging.error(f"YouTube ошибка: {e}")
         await msg.answer(f"⚠️ Ошибка: {e}")
+
 # ================= ГЛОБАЛЬНЫЕ ОШИБКИ =================
 @dp.errors()
 async def error_handler(event):
