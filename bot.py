@@ -128,12 +128,13 @@ async def youtube(msg: types.Message):
         return
 
     url = msg.text.strip()
-    wait_msg = await msg.answer("⏳ Загружаю...")
+    wait_msg = await msg.answer("⏳ Пытаюсь скачать...")
 
     try:
         ydl_opts = {
-            # 🔥 ВАЖНО: полностью убираем выбор формата
-            'format': '0/1/2/3/4/5/6/7/best',
+            # 🔥 КЛЮЧ: отключаем format selection полностью
+            'format': None,
+
             'cookiefile': 'cookies.txt',
             'outtmpl': 'video.%(ext)s',
 
@@ -141,12 +142,16 @@ async def youtube(msg: types.Message):
             'quiet': True,
             'no_warnings': True,
 
-            'retries': 10,
-            'fragment_retries': 10,
+            # 🔥 используем старый стабильный downloader
+            'downloader': 'ffmpeg',
+
+            'retries': 15,
+            'fragment_retries': 15,
             'socket_timeout': 30,
 
-            # отключаем сложные схемы DASH
-            'format_sort': ['ext'],
+            # fallback режим yt-dlp
+            'extract_flat': False,
+            'force_generic_extractor': False,
         }
 
         with YoutubeDL(ydl_opts) as ydl:
