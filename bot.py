@@ -126,14 +126,13 @@ async def youtube(msg: types.Message):
     await msg.answer("⏳ Скачиваю видео...")
 
     try:
-        ydl_opts = {
-            'format': 'best[height<=720]',
-            'outtmpl': 'video.%(ext)s',
-            'noplaylist': True,
-            'quiet': True,
-            'no_warnings': True
-        }
-
+       ydl_opts = {
+    'format': 'best[height<=720]',
+    'cookiefile': 'cookies.txt',
+    'outtmpl': 'video.%(ext)s',
+    'noplaylist': True,
+    'quiet': True,
+}
         with YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             filename = ydl.prepare_filename(info)
