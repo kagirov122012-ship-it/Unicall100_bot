@@ -113,11 +113,17 @@ async def password(msg: types.Message):
 
 
 # ================= YOUTUBE =================
+from yt_dlp import YoutubeDL
+from aiogram.types import FSInputFile
+import os
+
+
 @dp.message()
 async def youtube(msg: types.Message):
     if not msg.text:
         return
 
+    # проверяем, что это ссылка YouTube
     if "youtube.com" not in msg.text and "youtu.be" not in msg.text:
         return
 
@@ -126,13 +132,15 @@ async def youtube(msg: types.Message):
     await msg.answer("⏳ Скачиваю видео...")
 
     try:
-       ydl_opts = {
-    'format': 'best[height<=720]',
-    'cookiefile': 'cookies.txt',
-    'outtmpl': 'video.%(ext)s',
-    'noplaylist': True,
-    'quiet': True,
-}
+        ydl_opts = {
+            'format': 'best[height<=720]',
+            'cookiefile': 'cookies.txt',
+            'outtmpl': 'video.%(ext)s',
+            'noplaylist': True,
+            'quiet': True,
+            'no_warnings': True
+        }
+
         with YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             filename = ydl.prepare_filename(info)
@@ -141,17 +149,14 @@ async def youtube(msg: types.Message):
         video = FSInputFile(filename)
 
         await msg.answer_video(
-            video,
+            video=video,
             caption=f"🎬 {title}"
         )
 
         os.remove(filename)
 
     except Exception as e:
-        logging.error(f"YouTube ошибка: {e}")
         await msg.answer(f"⚠️ Ошибка:\n{e}")
-
-
 # ================= КАЛЬКУЛЯТОР =================
 @dp.message(
     lambda msg:
