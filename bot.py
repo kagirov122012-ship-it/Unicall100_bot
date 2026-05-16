@@ -113,76 +113,68 @@ async def password(msg: types.Message):
 
 
 # ================= YOUTUBE ================from yt_dlp import YoutubeDL
-from yt_dlp import YoutubeDL
-from aiogram import types
-from aiogram.types import FSInputFile
-import os
 
-
-@dp.message()
+@dp.message(lambda msg: msg.text and ('youtube.com' in msg.text or 'youtu.be' in msg.text))
 async def youtube(msg: types.Message):
-    if not msg.text:
-        return
-
-    if "youtube.com" not in msg.text and "youtu.be" not in msg.text:
-        return
-
     url = msg.text.strip()
-    wait_msg = await msg.answer("⏳ Подключаюсь к YouTube...")
+    wait = await msg.answer("⏳ Скачиваю видео...")
 
     try:
         ydl_opts = {
-            # 🔥 ключевой обход блоков
-            'format': 'best',
-            'cookiefile': 'cookies.txt',
-            'outtmpl': 'video.%(ext)s',
+            # 🔥 САМЫЙ СТАБИЛЬНЫЙ РЕЖИМ (без format error)
+            "format": "bestvideo+bestaudio/best",
+            "merge_output_format": "mp4",
 
-            'noplaylist': True,
-            'quiet': True,
-            'no_warnings': True,
+            "outtmpl": "video.%(ext)s",
+            "noplaylist": True,
 
-            # 🔥 важный обход для YouTube блоков
-            'force_ipv4': True,
-            'extractor_args': {
-                'youtube': {
-                    'player_client': ['android', 'web'],
+            "quiet": True,
+            "no_warnings": True,
+
+            # 🔥 ОБХОД БЛОКОВ YOUTUBE
+            "extractor_args": {
+                "youtube": {
+                    "player_client": ["android", "web"]
                 }
             },
 
-            # fallback безопасность
-            'retries': 20,
-            'fragment_retries': 20,
-            'socket_timeout': 30,
+            # 🔥 СТАБИЛЬНОСТЬ В СЕТИ
+            "force_ipv4": True,
+            "retries": 20,
+            "fragment_retries": 20,
+            "socket_timeout": 30,
         }
 
         with YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
 
             if not info:
-                await wait_msg.edit_text("⚠️ YouTube заблокировал доступ (extract_info = пусто)")
+                await wait.edit_text("⚠️ Не удалось получить данные видео")
                 return
 
             filename = ydl.prepare_filename(info)
+            title = info.get("title", "Видео")[:100]
 
+            # fallback если расширение другое
             if not os.path.exists(filename):
                 base = os.path.splitext(filename)[0]
-                for ext in [".mp4", ".webm", ".mkv"]:
+                for ext in [".mp4", ".mkv", ".webm"]:
                     if os.path.exists(base + ext):
                         filename = base + ext
                         break
 
-            title = info.get("title", "Видео")[:100]
+        video = types.FSInputFile(filename)
 
-        video = FSInputFile(filename)
+        await msg.answer_video(video, caption=f"🎬 {title}")
 
-        await msg.answer_video(video=video, caption=f"🎬 {title}")
-        await wait_msg.delete()
+        await wait.delete()
 
         if os.path.exists(filename):
             os.remove(filename)
 
     except Exception as e:
-        await wait_msg.edit_text(f"⚠️ ОШИБКА:\n{repr(e)}")
+        await wait.edit_text(f"⚠️ ОШИБКА:\n{repr(e)}")
+
 # ================= КАЛЬКУЛЯТОР =================
 @dp.message(
     lambda msg:
