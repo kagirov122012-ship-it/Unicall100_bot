@@ -7,7 +7,13 @@ import aiohttp
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
+from aiogram.types import (
+    FSInputFile,
+    InlineKeyboardMarkup,
+    InlineKeyboardButton
+)
 from yt_dlp import YoutubeDL
+
 
 # ================= ЛОГИ =================
 logging.basicConfig(
@@ -23,6 +29,12 @@ if not TOKEN:
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
+
+# хранение ссылок пользователей
+user_links = {}
+
+# антиспам
+user_last = {}
 
 
 # ================= ПАРОЛИ =================
@@ -112,20 +124,78 @@ async def password(msg: types.Message):
     )
 
 
-# ================= YOUTUBE (РАБОЧИЙ) =================
+# ================= YOUTUBE: ПОЛУЧЕНИЕ ССЫЛКИ =================
 @dp.message(lambda msg: msg.text and ('youtube.com' in msg.text or 'youtu.be' in msg.text))
 async def youtube(msg: types.Message):
+    uid = msg.from_user.id
+    now = asyncio.get_event_loop().time()
+
+    # антиспам
+    if uid in user_last and now - user_last[uid] < 5:
+        await msg.answer("⏳ Подожди 5 секунд перед следующим запросом")
+        return
+
+    user_last[uid] = now
+
     url = msg.text.strip()
-    wait = await msg.answer("⏳ Скачиваю видео...")
+    user_links[uid] = url
+
+    kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="360p", callback_data="q360"),
+                InlineKeyboardButton(text="720p", callback_data="q720"),
+                InlineKeyboardButton(text="1080p", callback_data="q1080")
+            ]
+        ]
+    )
+
+    await msg.answer(
+        "🎬 Выбери качество:",
+        reply_markup=kb
+    )
+
+
+# ================= CALLBACK КАЧЕСТВА =================
+@dp.callback_query(lambda c: c.data.startswith("q"))
+async def quality_selected(callback: types.CallbackQuery):
+    uid = callback.from_user.id
+
+    if uid not in user_links:
+        await callback.message.edit_text("❌ Ссылка устарела, отправь заново")
+        return
+
+    url = user_links[uid]
+
+    quality_map = {
+        "q360": "bestvideo[height<=360]+bestaudio/best[height<=360]",
+        "q720": "bestvideo[height<=720]+bestaudio/best[height<=720]",
+        "q1080": "bestvideo[height<=1080]+bestaudio/best[height<=1080]",
+    }
+
+    fmt = quality_map[callback.data]
+
+    wait = callback.message
+    await wait.edit_text("⏳ Начинаю загрузку...")
 
     try:
+        def progress_hook(d):
+            if d['status'] == 'downloading':
+                total = d.get("total_bytes") or d.get("total_bytes_estimate")
+                downloaded = d.get("downloaded_bytes", 0)
+
+                if total:
+                    percent = int(downloaded / total * 100)
+                    asyncio.create_task(
+                        wait.edit_text(f"📥 Загрузка: {percent}%")
+                    )
+
         ydl_opts = {
-            "format": "bestvideo+bestaudio/best",
+            "format": fmt,
             "merge_output_format": "mp4",
-
             "outtmpl": "video.%(ext)s",
-            "noplaylist": True,
 
+            "noplaylist": True,
             "quiet": True,
             "no_warnings": True,
 
@@ -139,6 +209,8 @@ async def youtube(msg: types.Message):
             "retries": 20,
             "fragment_retries": 20,
             "socket_timeout": 30,
+
+            "progress_hooks": [progress_hook]
         }
 
         with YoutubeDL(ydl_opts) as ydl:
@@ -158,9 +230,12 @@ async def youtube(msg: types.Message):
                         filename = base + ext
                         break
 
-        video = types.FSInputFile(filename)
+        video = FSInputFile(filename)
 
-        await msg.answer_video(video, caption=f"🎬 {title}")
+        await callback.message.answer_video(
+            video,
+            caption=f"🎬 {title}"
+        )
 
         await wait.delete()
 
