@@ -124,7 +124,7 @@ async def youtube(msg: types.Message):
     if not msg.text:
         return
 
-    # проверяем ссылку
+    # Проверяем, что это YouTube ссылка
     if "youtube.com" not in msg.text and "youtu.be" not in msg.text:
         return
 
@@ -134,7 +134,7 @@ async def youtube(msg: types.Message):
 
     try:
         ydl_opts = {
-            'format': 'bestvideo+bestaudio/best',
+            'format': 'best',
             'cookiefile': 'cookies.txt',
             'outtmpl': 'video.%(ext)s',
             'merge_output_format': 'mp4',
@@ -147,10 +147,13 @@ async def youtube(msg: types.Message):
             info = ydl.extract_info(url, download=True)
             filename = ydl.prepare_filename(info)
 
-            # если yt-dlp склеил в mp4, а имя старое
+            # если расширение поменялось
             if not os.path.exists(filename):
                 base = os.path.splitext(filename)[0]
-                filename = base + ".mp4"
+                for ext in ['.mp4', '.mkv', '.webm']:
+                    if os.path.exists(base + ext):
+                        filename = base + ext
+                        break
 
             title = info.get("title", "Видео")[:100]
 
@@ -163,7 +166,8 @@ async def youtube(msg: types.Message):
 
         await wait_msg.delete()
 
-        os.remove(filename)
+        if os.path.exists(filename):
+            os.remove(filename)
 
     except Exception as e:
         await wait_msg.edit_text(f"⚠️ Ошибка:\n{e}")
