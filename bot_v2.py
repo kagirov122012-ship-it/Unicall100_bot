@@ -111,17 +111,17 @@ async def youtube(msg: types.Message):
 
     try:
         ydl_opts = {
-            "format": "18/best",
-            "cookiefile": "cookies.txt",
-            "quiet": True,
-            "no_warnings": True,
-            "noplaylist": True
-        }
+    "format": "best",
+    "cookiefile": "cookies.txt",
+    "quiet": True,
+    "no_warnings": True,
+    "noplaylist": True
+}
 
         with YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
 
-            video_url = info["url"]
+            video_url = info.get("url")
             title = info.get("title", "Видео")[:100]
 
             await msg.answer_video(
@@ -133,9 +133,7 @@ async def youtube(msg: types.Message):
 
     except Exception as e:
         logging.error(f"YouTube ошибка: {e}")
-        await wait.edit_text(f"⚠️ ОШИБКА:\n{str(e)}")
-
-
+        await wait.edit_text("⚠️ Не удалось скачать видео")
 # ================= ГЛОБАЛЬНЫЕ ОШИБКИ =================
 @dp.errors()
 async def error_handler(event):
