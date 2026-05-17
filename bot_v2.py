@@ -109,18 +109,20 @@ async def password(msg: types.Message):
 @dp.message(lambda msg: msg.text and ('youtube.com' in msg.text or 'youtu.be' in msg.text))
 async def youtube(msg: types.Message):
     url = msg.text.strip()
-
-    await msg.answer("⏳ Загружаю видео...")
+    wait = await msg.answer("⏳ Загружаю видео...")
 
     try:
-        with YoutubeDL({
-            'format': 'best',
-            'quiet': True,
-            'no_warnings': True
-        }) as ydl:
+        ydl_opts = {
+            "format": "18/best",   # сначала mp4 360p, если нет — best
+            "quiet": True,
+            "no_warnings": True,
+            "noplaylist": True
+        }
 
+        with YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
-            video_url = info.get("url")
+
+            video_url = info["url"]
             title = info.get("title", "Видео")[:100]
 
             await msg.answer_video(
@@ -128,9 +130,11 @@ async def youtube(msg: types.Message):
                 caption=f"🎬 {title}"
             )
 
+        await wait.delete()
+
     except Exception as e:
         logging.error(f"YouTube ошибка: {e}")
-        await msg.answer("⚠️ Не удалось скачать видео")
+        await wait.edit_text(f"⚠️ ОШИБКА:\n{str(e)}")
    # ================= КАЛЬКУЛЯТОР =================
 @dp.message(
     lambda msg:
