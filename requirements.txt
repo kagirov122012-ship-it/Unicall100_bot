@@ -1,4 +1,5 @@
-
 aiogram
 aiohttp
-yt-dlp
+qrcode[pil]
+pyzbar
+pillow
