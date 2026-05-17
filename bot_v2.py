@@ -109,61 +109,28 @@ async def password(msg: types.Message):
 @dp.message(lambda msg: msg.text and ('youtube.com' in msg.text or 'youtu.be' in msg.text))
 async def youtube(msg: types.Message):
     url = msg.text.strip()
-    wait = await msg.answer("⏳ Загружаю видео...")
+
+    await msg.answer("⏳ Загружаю видео...")
 
     try:
-        ydl_opts = {
-            "format": "best",
-            "outtmpl": "video.%(ext)s",
+        with YoutubeDL({
+            'format': 'best',
+            'quiet': True,
+            'no_warnings': True
+        }) as ydl:
 
-            "cookiefile": "cookies.txt",
-
-            "quiet": True,
-            "no_warnings": True,
-            "noplaylist": True,
-
-            "extractor_args": {
-                "youtube": {
-                    "player_client": ["android"]
-                }
-            },
-
-            "force_ipv4": True,
-
-"js_runtimes": {
-    "deno": {}
-},
-            "retries": 10,
-            "socket_timeout": 30,
-        }
-
-        with YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-
-            filename = ydl.prepare_filename(info)
+            info = ydl.extract_info(url, download=False)
+            video_url = info.get("url")
             title = info.get("title", "Видео")[:100]
 
-            if not os.path.exists(filename):
-                base = os.path.splitext(filename)[0]
-                for ext in [".mp4", ".mkv", ".webm"]:
-                    if os.path.exists(base + ext):
-                        filename = base + ext
-                        break
-
-        await msg.answer_video(
-            types.FSInputFile(filename),
-            caption=f"🎬 {title}"
-        )
-
-        await wait.delete()
-
-        if os.path.exists(filename):
-            os.remove(filename)
+            await msg.answer_video(
+                video_url,
+                caption=f"🎬 {title}"
+            )
 
     except Exception as e:
         logging.error(f"YouTube ошибка: {e}")
-        await wait.edit_text(f"⚠️ ОШИБКА:\n{repr(e)}")
-
+        await msg.answer("⚠️ Не удалось скачать видео")
    # ================= КАЛЬКУЛЯТОР =================
 @dp.message(
     lambda msg:
