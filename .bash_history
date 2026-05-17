@@ -182,3 +182,80 @@ git add .
 git commit -m "youtube antilag"
 git push
 nano bot.py
+IS
+Is
+pwd
+ls
+nano bot.py
+aiogram
+yt-dlp
+requests
+aiogram
+yt-dlp
+aiohttp
+git add .
+git commit -m "youtube real fix"
+git push
+pip install -U yt-dlp
+yt-dlp -F https://www.youtube.com/watch?v=h56PPH-1o3k
+nano bot.py
+git add .
+git commit -m "fix youtube handler stable"
+git push
+pip install aiogram yt-dlp aiohttp
+pkg install ffmpeg
+nano bot.py
+git add .
+git commit -m "premium"
+git push
+nano bot.py
+git add .
+git commit -m "restore old working bot"
+git push
+nano bot.0y
+nano bot.py
+git add .
+git commit -m "restore old working bot"
+git push
+ls
+cp /storage/emulated/0/Download/cookies.txt .
+ls
+pip install -U yt-dlp
+cp /storage/emulated/0/Download/cookies.txt .
+ls
+cp /storage/emulated/0/Download/youtube_cookies.txt ./cookies.txt
+cp /storage/emulated/0/Download/cookies.txt .
+ls
+cp /storage/emulated/0/Download/cookies.txt .
+cp "/storage/emulated/0/Download/youtube_cookies.txt" .
+ls
+"cookiefile": "/storage/emulated/0/Download/cookies.txt",
+"cookiefile": "/storage/emulated/0/Download/cookies.txt"
+ls /storage/emulated/0/Download
+ls
+nano bot.py
+ls
+bot.py
+Ls
+ls
+rm "bot.pyimport os"
+git add .
+git commit -m "add cookies to youtube quality handler"
+git push
+nano bot.py
+git add .
+git commit -m "add youtube cookies support"
+git push
+git add .
+git commit -m "add youtube cookies support"
+git push
+ls
+nano bot.py
+ls
+cp bot_v2.py bot.py
+ls
+python bot.py
+git add .
+git commit -m "sync bot_v2 into bot.py"
+git push
+nano bot_v2.py
