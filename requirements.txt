@@ -1,5 +1,3 @@
 aiogram
 aiohttp
 qrcode[pil]
-pyzbar
-pillow

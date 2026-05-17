@@ -6,9 +6,6 @@ import logging
 import aiohttp
 import qrcode
 
-from PIL import Image
-from pyzbar.pyzbar import decode
-
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.types import ReplyKeyboardRemove
@@ -79,7 +76,6 @@ async def start(msg: types.Message):
     await msg.answer(
         "🤖 Helper Tools Bot\n\n"
         "📷 /qr текст — создать QR\n"
-        "📸 Отправь фото QR — расшифрую\n"
         "/course — курс валют\n"
         "/pass — пароль\n"
         "🧮 Пример: 2+2"
@@ -126,38 +122,20 @@ async def qr_help(msg: types.Message):
 
 @dp.message(lambda msg: msg.text and msg.text.startswith("/qr "))
 async def make_qr(msg: types.Message):
-    text = msg.text[4:].strip()
-
-    img = qrcode.make(text)
-    img.save("qr.png")
-
-    photo = types.FSInputFile("qr.png")
-    await msg.answer_photo(photo, caption="✅ QR готов")
-
-    os.remove("qr.png")
-
-
-# ================= QR SCANNER =================
-@dp.message(lambda msg: msg.photo)
-async def scan_qr(msg: types.Message):
     try:
-        file = await bot.get_file(msg.photo[-1].file_id)
-        await bot.download_file(file.file_path, "scan.jpg")
+        text = msg.text[4:].strip()
 
-        img = Image.open("scan.jpg")
-        result = decode(img)
+        img = qrcode.make(text)
+        img.save("qr.png")
 
-        os.remove("scan.jpg")
+        photo = types.FSInputFile("qr.png")
+        await msg.answer_photo(photo, caption="✅ QR готов")
 
-        if result:
-            text = result[0].data.decode("utf-8")
-            await msg.answer(f"📷 QR:\n{text}")
-        else:
-            await msg.answer("❌ QR не найден")
+        os.remove("qr.png")
 
     except Exception as e:
         logging.error(f"QR ошибка: {e}")
-        await msg.answer("⚠️ Ошибка чтения QR")
+        await msg.answer("⚠️ Ошибка создания QR")
 
 
 # ================= КАЛЬКУЛЯТОР =================
