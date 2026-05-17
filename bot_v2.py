@@ -70,6 +70,13 @@ def calc(expr):
 # ================= /start =================
 @dp.message(Command("start"))
 async def start(msg: types.Message):
+    # сначала удаляем старую клавиатуру
+    await msg.answer(
+        "🧹 Убираю старое меню...",
+        reply_markup=ReplyKeyboardRemove()
+    )
+
+    # потом отправляем обычный старт
     await msg.answer(
         "🤖 Бот-помощник\n\n"
         "📥 YouTube ссылка — скачаю видео\n"
@@ -77,7 +84,6 @@ async def start(msg: types.Message):
         "/pass — пароль\n"
         "🧮 Пример 2+2"
     )
-
 
 # ================= /help =================
 @dp.message(Command("help"))
