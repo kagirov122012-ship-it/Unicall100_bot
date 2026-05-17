@@ -103,8 +103,6 @@ async def password(msg: types.Message):
         parse_mode="Markdown"
     )
 
-
-
 # ================= YOUTUBE =================
 @dp.message(lambda msg: msg.text and ('youtube.com' in msg.text or 'youtu.be' in msg.text))
 async def youtube(msg: types.Message):
@@ -113,7 +111,8 @@ async def youtube(msg: types.Message):
 
     try:
         ydl_opts = {
-            "format": "18/best",   # сначала mp4 360p, если нет — best
+            "format": "18/best",
+            "cookiefile": "cookies.txt",
             "quiet": True,
             "no_warnings": True,
             "noplaylist": True
@@ -135,21 +134,7 @@ async def youtube(msg: types.Message):
     except Exception as e:
         logging.error(f"YouTube ошибка: {e}")
         await wait.edit_text(f"⚠️ ОШИБКА:\n{str(e)}")
-   # ================= КАЛЬКУЛЯТОР =================
-@dp.message(
-    lambda msg:
-    msg.text
-    and any(op in msg.text for op in "+-*/")
-    and "youtube.com" not in msg.text
-    and not msg.text.startswith("/")
-)
-async def calculator(msg: types.Message):
-    result = calc(msg.text.strip())
 
-    if result is not None:
-        await msg.answer(f"🧮 `{result}`", parse_mode="Markdown")
-    else:
-        await msg.answer("❌ Ошибка")
 
 # ================= ГЛОБАЛЬНЫЕ ОШИБКИ =================
 @dp.errors()
