@@ -113,14 +113,12 @@ async def youtube(msg: types.Message):
     wait = await msg.answer("⏳ Обрабатываю видео...")
 
     try:
-        # 🔥 САМЫЙ СТАБИЛЬНЫЙ ВАРИАНТ (3 уровня fallback)
+        # 🔥 САМЫЙ СТАБИЛЬНЫЙ режим
         ydl_opts = {
-            "format": "best[ext=mp4]/best/bestvideo+bestaudio/best",
+            "format": "best",
             "outtmpl": "video.%(ext)s",
 
             "cookiefile": "cookies.txt",
-
-            "merge_output_format": "mp4",
 
             "noplaylist": True,
             "quiet": True,
@@ -128,18 +126,18 @@ async def youtube(msg: types.Message):
 
             "extractor_args": {
                 "youtube": {
-                    "player_client": ["android", "web", "tv"]
+                    "player_client": ["android", "web"]
                 }
             },
 
             "force_ipv4": True,
-            "retries": 15,
-            "fragment_retries": 15,
+            "retries": 10,
+            "fragment_retries": 10,
             "socket_timeout": 30,
         }
 
-        filename = None
         title = "Видео"
+        filename = None
 
         with YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
@@ -149,19 +147,23 @@ async def youtube(msg: types.Message):
                 return
 
             title = info.get("title", "Видео")[:100]
+
+            # файл yt-dlp
             filename = ydl.prepare_filename(info)
 
-            # ищем реальный файл
-            if not os.path.exists(filename):
-                base = os.path.splitext(filename)[0]
-                for ext in [".mp4", ".mkv", ".webm"]:
-                    if os.path.exists(base + ext):
-                        filename = base + ext
-                        break
-
+        # 🔥 если файл не скачался — fallback (стрим)
         if not filename or not os.path.exists(filename):
-            await wait.edit_text("⚠️ Видео недоступно для скачивания")
-            return
+            with YoutubeDL({"quiet": True}) as ydl:
+                info = ydl.extract_info(url, download=False)
+                stream_url = info.get("url")
+
+                if not stream_url:
+                    await wait.edit_text("⚠️ Видео недоступно")
+                    return
+
+                await msg.answer_video(stream_url, caption=f"🎬 {title}")
+                await wait.delete()
+                return
 
         video = types.FSInputFile(filename)
 
