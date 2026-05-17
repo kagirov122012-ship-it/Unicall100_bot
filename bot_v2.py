@@ -18,7 +18,6 @@ logging.basicConfig(
 
 # ================= ТОКЕНЫ =================
 TOKEN = os.getenv("BOT_TOKEN")
-WEATHER_API = "5489ed2d46e0be37813435821ade2ede"
 
 if not TOKEN:
     raise ValueError("❌ Не найден BOT_TOKEN!")
@@ -218,54 +217,29 @@ async def short_link(msg: types.Message, command: CommandObject):
         return
 
     try:
+        url = command.args.strip()
+
         async with aiohttp.ClientSession() as session:
             async with session.get(
-                f"https://is.gd/create.php?format=simple&url={command.args.strip()}",
+                f"https://is.gd/create.php?format=simple&url={url}",
                 timeout=15
             ) as resp:
                 shorted = await resp.text()
 
-        await msg.answer(f"🔗 Короткая ссылка:\n{shorted}")
-    except:
-        await msg.answer("⚠️ Ошибка сокращения")
-
-# ================= WEATHER =================
-@dp.message(Command("weather"))
-async def weather(msg: types.Message, command: CommandObject):
-    if not command.args:
-        await msg.answer("Напиши так:\n/weather Helsinki")
-        return
-
-    city = command.args.strip()
-
-    try:
-        url = (
-            f"https://api.openweathermap.org/data/2.5/weather"
-            f"?q={city}&appid={WEATHER_API}&units=metric&lang=ru"
-        )
-
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, timeout=15) as resp:
-                data = await resp.json()
-
-        if data.get("cod") != 200:
-            await msg.answer("❌ Город не найден")
+        if shorted.startswith("Error:"):
+            await msg.answer(
+                "⚠️ Не удалось сократить ссылку.\n"
+                "Попробуй другую ссылку или проверь правильность."
+            )
             return
 
-        temp = data["main"]["temp"]
-        feels = data["main"]["feels_like"]
-        desc = data["weather"][0]["description"]
-        wind = data["wind"]["speed"]
+        await msg.answer(f"🔗 Короткая ссылка:\n{shorted}")
 
-        await msg.answer(
-            f"🌤 Погода в {city}\n\n"
-            f"🌡 Температура: {temp}°C\n"
-            f"🤗 Ощущается: {feels}°C\n"
-            f"☁️ {desc.capitalize()}\n"
-            f"💨 Ветер: {wind} м/с"
-        )
     except:
-        await msg.answer("⚠️ Ошибка погоды")
+        await msg.answer(
+            "⚠️ Сервис сокращения сейчас недоступен.\n"
+            "Попробуй позже или другую ссылку."
+        )
 
 # ================= CALC =================
 @dp.message(
