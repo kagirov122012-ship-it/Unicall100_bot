@@ -37,17 +37,17 @@ async def get_rates():
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get(
-                "https://api.exchangerate-api.com/v4/latest/USD",
+                "https://open.er-api.com/v6/latest/USD",
                 timeout=10
             ) as resp:
                 data = await resp.json()
 
-                usd = data['rates']['RUB']
-                eur = data['rates']['EUR'] * usd
-                cny = data['rates']['CNY'] * usd
+                usd = data["rates"]["RUB"]
+                eur = data["rates"]["EUR"] * usd
+                cny = data["rates"]["CNY"] * usd
 
                 return (
-                    f"💰 Курс:\n"
+                    "💰 Курс валют:\n"
                     f"🇺🇸 USD: {usd:.2f} ₽\n"
                     f"🇪🇺 EUR: {eur:.2f} ₽\n"
                     f"🇨🇳 CNY: {cny:.2f} ₽"
@@ -71,13 +71,13 @@ def calc(expr):
 # ================= /start =================
 @dp.message(Command("start"))
 async def start(msg: types.Message):
-    await msg.answer(" ", reply_markup=ReplyKeyboardRemove())
     await msg.answer(
         "🤖 Helper Tools Bot\n\n"
         "📷 /qr текст или ссылка — создать QR\n"
         "/course — курс валют\n"
         "/pass — пароль\n"
-        "🧮 Пример: 2+2"
+        "🧮 Пример: 2+2",
+        reply_markup=ReplyKeyboardRemove()
     )
 
 
@@ -102,7 +102,6 @@ async def course(msg: types.Message):
 @dp.message(Command("pass"))
 async def password(msg: types.Message, command: CommandObject):
     length = 12
-
     if command.args and command.args.isdigit():
         length = min(int(command.args), 32)
 
@@ -158,17 +157,10 @@ async def error_handler(event):
     return True
 
 
-# ================= АВТОПЕРЕЗАПУСК =================
+# ================= ЗАПУСК =================
 async def main():
-    while True:
-        try:
-            logging.info("🚀 Бот запущен")
-            await dp.start_polling(bot)
-
-        except Exception as e:
-            logging.error(f"Бот упал: {e}")
-            logging.info("♻️ Перезапуск через 5 секунд...")
-            await asyncio.sleep(5)
+    logging.info("🚀 Бот запущен")
+    await dp.start_polling(bot)
 
 
 if __name__ == "__main__":
