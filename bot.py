@@ -155,6 +155,7 @@ async def youtube(msg: types.Message):
         reply_markup=kb
     )
 
+
 # ================= CALLBACK КАЧЕСТВА =================
 @dp.callback_query(lambda c: c.data.startswith("q"))
 async def quality_selected(callback: types.CallbackQuery):
@@ -179,7 +180,7 @@ async def quality_selected(callback: types.CallbackQuery):
 
     try:
         def progress_hook(d):
-            if d["status"] == "downloading":
+            if d['status'] == 'downloading':
                 total = d.get("total_bytes") or d.get("total_bytes_estimate")
                 downloaded = d.get("downloaded_bytes", 0)
 
@@ -247,7 +248,6 @@ async def quality_selected(callback: types.CallbackQuery):
     except Exception as e:
         logging.error(f"YouTube ошибка: {e}")
         await wait.edit_text(f"⚠️ ОШИБКА:\n{repr(e)}")
-
 # ================= КАЛЬКУЛЯТОР =================
 @dp.message(
     lambda msg:
