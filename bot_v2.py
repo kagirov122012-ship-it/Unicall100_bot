@@ -110,13 +110,14 @@ async def password(msg: types.Message):
 async def youtube(msg: types.Message):
     url = msg.text.strip()
 
-    wait = await msg.answer("⏳ Обрабатываю видео...")
+    wait = await msg.answer("⏳ Получаю видео...")
 
     try:
-        # 🔥 САМЫЙ СТАБИЛЬНЫЙ режим
         ydl_opts = {
-            "format": "best",
             "outtmpl": "video.%(ext)s",
+
+            # 🔥 ВАЖНО: убираем format вообще
+            "format": "best",
 
             "cookiefile": "cookies.txt",
 
@@ -124,20 +125,15 @@ async def youtube(msg: types.Message):
             "quiet": True,
             "no_warnings": True,
 
+            # 🔥 ключевой фикс (обход блокировок YouTube)
             "extractor_args": {
                 "youtube": {
-                    "player_client": ["android", "web"]
+                    "player_client": ["web"]
                 }
             },
 
             "force_ipv4": True,
-            "retries": 10,
-            "fragment_retries": 10,
-            "socket_timeout": 30,
         }
-
-        title = "Видео"
-        filename = None
 
         with YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
@@ -147,23 +143,11 @@ async def youtube(msg: types.Message):
                 return
 
             title = info.get("title", "Видео")[:100]
-
-            # файл yt-dlp
             filename = ydl.prepare_filename(info)
 
-        # 🔥 если файл не скачался — fallback (стрим)
-        if not filename or not os.path.exists(filename):
-            with YoutubeDL({"quiet": True}) as ydl:
-                info = ydl.extract_info(url, download=False)
-                stream_url = info.get("url")
-
-                if not stream_url:
-                    await wait.edit_text("⚠️ Видео недоступно")
-                    return
-
-                await msg.answer_video(stream_url, caption=f"🎬 {title}")
-                await wait.delete()
-                return
+        if not os.path.exists(filename):
+            await wait.edit_text("⚠️ Файл не найден после загрузки")
+            return
 
         video = types.FSInputFile(filename)
 
@@ -178,8 +162,10 @@ async def youtube(msg: types.Message):
 
     except Exception as e:
         logging.error(f"YouTube ошибка: {e}")
-        await wait.edit_text(f"⚠️ ОШИБКА:\n{repr(e)}")
-# ================= КАЛЬКУЛЯТОР =================
+        await wait.edit_text(
+            "⚠️ Видео заблокировано YouTube или недоступно для скачивания\n\n"
+            f"Ошибка: {repr(e)}"
+        )# ================= КАЛЬКУЛЯТОР =================
 @dp.message(
     lambda msg:
     msg.text
