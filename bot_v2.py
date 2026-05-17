@@ -25,25 +25,27 @@ if not TOKEN:
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
-# хранение tempmail в памяти: {telegram_id: (login, domain)}
+# user_id -> {"login":..., "domain":...}
 temp_mails = {}
+# user_id -> ждём ввод сервиса
+waiting_service = {}
 
-# ================= ПАРОЛИ =================
-def generate_password(length=12):
-    chars = string.ascii_letters + string.digits + "!@#$%^&*"
-    return ''.join(random.choice(chars) for _ in range(length))
+# ================= TEMPMAIL DOMAINS =================
+TEMP_DOMAINS = {
+    "tiktok": "esiix.com",
+    "discord": "wwjmp.com",
+    "steam": "xojxe.com",
+    "telegram": "yoggm.com",
+    "default": "1secmail.com"
+}
 
-# ================= TEMPMAIL =================
+
 def generate_temp_login():
     return ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(10))
 
-TEMP_DOMAIN = "1secmail.com"
 
 async def get_mail_messages(login, domain):
-    url = (
-        f"https://www.1secmail.com/api/v1/"
-        f"?action=getMessages&login={login}&domain={domain}"
-    )
+    url = f"https://www.1secmail.com/api/v1/?action=getMessages&login={login}&domain={domain}"
 
     try:
         async with aiohttp.ClientSession() as session:
@@ -54,14 +56,19 @@ async def get_mail_messages(login, domain):
             ) as resp:
 
                 if resp.status != 200:
-                    raise Exception(f"HTTP {resp.status}")
+                    return []
 
-                data = await resp.json(content_type=None)
-                return data
+                return await resp.json(content_type=None)
 
-    except Exception as e:
-        logging.error(f"TempMail API error: {e}")
+    except:
         return []
+
+
+# ================= ПАРОЛИ =================
+def generate_password(length=12):
+    chars = string.ascii_letters + string.digits + "!@#$%^&*"
+    return ''.join(random.choice(chars) for _ in range(length))
+
 
 # ================= КУРС ВАЛЮТ =================
 async def get_rates():
@@ -83,9 +90,9 @@ async def get_rates():
                     f"🇪🇺 EUR: {eur:.2f} ₽\n"
                     f"🇨🇳 CNY: {cny:.2f} ₽"
                 )
-    except Exception as e:
-        logging.error(f"Ошибка курса: {e}")
+    except:
         return "❌ Ошибка получения курса"
+
 
 # ================= КАЛЬКУЛЯТОР =================
 def calc(expr):
@@ -96,6 +103,7 @@ def calc(expr):
         return eval(expr)
     except:
         return None
+
 
 # ================= /start =================
 @dp.message(Command("start"))
@@ -111,6 +119,7 @@ async def start(msg: types.Message):
         reply_markup=ReplyKeyboardRemove()
     )
 
+
 # ================= /help =================
 @dp.message(Command("help"))
 async def help_cmd(msg: types.Message):
@@ -123,10 +132,12 @@ async def help_cmd(msg: types.Message):
         "или отправь пример: 2+2"
     )
 
+
 # ================= /course =================
 @dp.message(Command("course"))
 async def course(msg: types.Message):
     await msg.answer(await get_rates())
+
 
 # ================= /pass =================
 @dp.message(Command("pass"))
@@ -140,6 +151,7 @@ async def password(msg: types.Message, command: CommandObject):
         parse_mode="Markdown"
     )
 
+
 # ================= QR =================
 @dp.message(Command("qr"))
 async def make_qr(msg: types.Message, command: CommandObject):
@@ -148,31 +160,49 @@ async def make_qr(msg: types.Message, command: CommandObject):
         return
 
     try:
-        text = command.args.strip()
-        img = qrcode.make(text)
+        img = qrcode.make(command.args.strip())
         img.save("qr.png")
 
         photo = types.FSInputFile("qr.png")
         await msg.answer_photo(photo, caption="✅ QR готов")
 
         os.remove("qr.png")
-
-    except Exception as e:
-        logging.error(f"QR ошибка: {e}")
+    except:
         await msg.answer("⚠️ Ошибка создания QR")
+
 
 # ================= TEMPMAIL =================
 @dp.message(Command("tempmail"))
-async def create_tempmail(msg: types.Message):
+async def tempmail(msg: types.Message):
+    waiting_service[msg.from_user.id] = True
+    await msg.answer(
+        "Где регистрируешься?\n\n"
+        "Напиши: tiktok / discord / steam / telegram\n"
+        "или другое слово"
+    )
+
+
+@dp.message(lambda msg: msg.from_user.id in waiting_service)
+async def choose_service(msg: types.Message):
+    service = msg.text.lower().strip()
+
+    domain = TEMP_DOMAINS.get(service, TEMP_DOMAINS["default"])
     login = generate_temp_login()
-    temp_mails[msg.from_user.id] = (login, TEMP_DOMAIN)
+
+    temp_mails[msg.from_user.id] = {
+        "login": login,
+        "domain": domain
+    }
+
+    del waiting_service[msg.from_user.id]
 
     await msg.answer(
         f"📩 Временная почта создана:\n"
-        f"`{login}@{TEMP_DOMAIN}`\n\n"
+        f"`{login}@{domain}`\n\n"
         f"Проверка: /checkmail",
         parse_mode="Markdown"
     )
+
 
 @dp.message(Command("checkmail"))
 async def checkmail(msg: types.Message):
@@ -182,26 +212,32 @@ async def checkmail(msg: types.Message):
         await msg.answer("❌ Сначала создай почту: /tempmail")
         return
 
-    login, domain = temp_mails[user_id]
+    login = temp_mails[user_id]["login"]
+    domain = temp_mails[user_id]["domain"]
 
-    try:
+    wait = await msg.answer("⏳ Ищу письма до 60 секунд...")
+
+    for _ in range(12):
         mails = await get_mail_messages(login, domain)
 
-        if not mails:
-            await msg.answer("📭 Писем пока нет")
+        if mails:
+            text = "📬 Входящие:\n\n"
+            for i, mail in enumerate(mails[:5], 1):
+                sender = mail.get("from", "Unknown")
+                subject = mail.get("subject", "Без темы")
+                text += f"{i}. От: {sender}\nТема: {subject}\n\n"
+
+            await wait.edit_text(text)
             return
 
-        text = "📬 Входящие:\n\n"
-        for i, mail in enumerate(mails[:5], 1):
-            sender = mail.get("from", "Unknown")
-            subject = mail.get("subject", "Без темы")
-            text += f"{i}. От: {sender}\nТема: {subject}\n\n"
+        await asyncio.sleep(5)
 
-        await msg.answer(text)
+    await wait.edit_text(
+        "📭 За 60 секунд письма не пришли.\n\n"
+        "💡 Возможно сервис не поддерживает этот домен.\n"
+        "Попробуй создать новую почту через /tempmail"
+    )
 
-    except Exception as e:
-        logging.error(f"TempMail ошибка: {e}")
-        await msg.answer("⚠️ Ошибка проверки почты")
 
 # ================= КАЛЬКУЛЯТОР =================
 @dp.message(
@@ -218,16 +254,19 @@ async def calculator(msg: types.Message):
     else:
         await msg.answer("❌ Ошибка")
 
-# ================= ГЛОБАЛЬНЫЕ ОШИБКИ =================
+
+# ================= ERROR =================
 @dp.errors()
 async def error_handler(event):
     logging.error(f"Ошибка: {event.exception}")
     return True
 
-# ================= ЗАПУСК =================
+
+# ================= RUN =================
 async def main():
     logging.info("🚀 Бот запущен")
     await dp.start_polling(bot)
+
 
 if __name__ == "__main__":
     asyncio.run(main())
