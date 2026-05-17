@@ -109,62 +109,58 @@ async def password(msg: types.Message):
 @dp.message(lambda msg: msg.text and ('youtube.com' in msg.text or 'youtu.be' in msg.text))
 async def youtube(msg: types.Message):
     url = msg.text.strip()
-
-    wait = await msg.answer("⏳ Получаю видео...")
+    wait = await msg.answer("⏳ Загружаю видео...")
 
     try:
         ydl_opts = {
+            "format": "best",
             "outtmpl": "video.%(ext)s",
 
-            # 🔥 ВАЖНО: убираем format вообще
-            "format": "best",
+            "cookiefile": "cookies.txt",
 
-
-            "noplaylist": True,
             "quiet": True,
             "no_warnings": True,
+            "noplaylist": True,
 
-            # 🔥 ключевой фикс (обход блокировок YouTube)
             "extractor_args": {
                 "youtube": {
-                    "player_client": ["web"]
+                    "player_client": ["android"]
                 }
             },
 
             "force_ipv4": True,
+            "retries": 10,
+            "socket_timeout": 30,
         }
 
         with YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
 
-            if not info:
-                await wait.edit_text("⚠️ Не удалось получить видео")
-                return
-
-            title = info.get("title", "Видео")[:100]
             filename = ydl.prepare_filename(info)
+            title = info.get("title", "Видео")[:100]
 
-        if not os.path.exists(filename):
-            await wait.edit_text("⚠️ Файл не найден после загрузки")
-            return
+            if not os.path.exists(filename):
+                base = os.path.splitext(filename)[0]
+                for ext in [".mp4", ".mkv", ".webm"]:
+                    if os.path.exists(base + ext):
+                        filename = base + ext
+                        break
 
-        video = types.FSInputFile(filename)
-
-        await msg.answer_video(video, caption=f"🎬 {title}")
+        await msg.answer_video(
+            types.FSInputFile(filename),
+            caption=f"🎬 {title}"
+        )
 
         await wait.delete()
 
-        try:
+        if os.path.exists(filename):
             os.remove(filename)
-        except:
-            pass
 
     except Exception as e:
         logging.error(f"YouTube ошибка: {e}")
-        await wait.edit_text(
-            "⚠️ Видео заблокировано YouTube или недоступно для скачивания\n\n"
-            f"Ошибка: {repr(e)}"
-        )# ================= КАЛЬКУЛЯТОР =================
+        await wait.edit_text(f"⚠️ ОШИБКА:\n{repr(e)}")
+
+   # ================= КАЛЬКУЛЯТОР =================
 @dp.message(
     lambda msg:
     msg.text
