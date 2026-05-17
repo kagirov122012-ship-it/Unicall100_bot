@@ -119,7 +119,6 @@ async def youtube(msg: types.Message):
             # 🔥 ВАЖНО: убираем format вообще
             "format": "best",
 
-            "cookiefile": "cookies.txt",
 
             "noplaylist": True,
             "quiet": True,
