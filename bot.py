@@ -7,13 +7,7 @@ import aiohttp
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
-from aiogram.types import (
-    FSInputFile,
-    InlineKeyboardMarkup,
-    InlineKeyboardButton
-)
 from yt_dlp import YoutubeDL
-
 
 # ================= ЛОГИ =================
 logging.basicConfig(
@@ -29,12 +23,6 @@ if not TOKEN:
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
-
-# хранение ссылок пользователей
-user_links = {}
-
-# антиспам
-user_last = {}
 
 
 # ================= ПАРОЛИ =================
@@ -87,20 +75,14 @@ async def start(msg: types.Message):
         "📥 YouTube ссылка — скачаю видео\n"
         "/course — курс валют\n"
         "/pass — пароль\n"
-        "🧮 Просто отправь пример: 2+2"
+        "🧮 Пример 2+2"
     )
 
 
 # ================= /help =================
 @dp.message(Command("help"))
 async def help_cmd(msg: types.Message):
-    await msg.answer(
-        "Команды:\n"
-        "/course\n"
-        "/pass [длина]\n"
-        "или YouTube ссылка\n"
-        "или пример 2+2"
-    )
+    await msg.answer("/course /pass\nИли отправь YouTube ссылку или пример")
 
 
 # ================= /course =================
@@ -124,130 +106,34 @@ async def password(msg: types.Message):
     )
 
 
-# ================= YOUTUBE: ПОЛУЧЕНИЕ ССЫЛКИ =================
+# ================= YOUTUBE =================
 @dp.message(lambda msg: msg.text and ('youtube.com' in msg.text or 'youtu.be' in msg.text))
 async def youtube(msg: types.Message):
-    uid = msg.from_user.id
-    now = asyncio.get_event_loop().time()
-
-    # антиспам
-    if uid in user_last and now - user_last[uid] < 5:
-        await msg.answer("⏳ Подожди 5 секунд перед следующим запросом")
-        return
-
-    user_last[uid] = now
-
     url = msg.text.strip()
-    user_links[uid] = url
 
-    kb = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(text="360p", callback_data="q360"),
-                InlineKeyboardButton(text="720p", callback_data="q720"),
-                InlineKeyboardButton(text="1080p", callback_data="q1080")
-            ]
-        ]
-    )
-
-    await msg.answer(
-        "🎬 Выбери качество:",
-        reply_markup=kb
-    )
-
-
-# ================= CALLBACK КАЧЕСТВА =================
-@dp.callback_query(lambda c: c.data.startswith("q"))
-async def quality_selected(callback: types.CallbackQuery):
-    uid = callback.from_user.id
-
-    if uid not in user_links:
-        await callback.message.edit_text("❌ Ссылка устарела, отправь заново")
-        return
-
-    url = user_links[uid]
-
-    quality_map = {
-        "q360": "bestvideo[height<=360]+bestaudio/best[height<=360]",
-        "q720": "bestvideo[height<=720]+bestaudio/best[height<=720]",
-        "q1080": "bestvideo[height<=1080]+bestaudio/best[height<=1080]",
-    }
-
-    fmt = quality_map[callback.data]
-
-    wait = callback.message
-    await wait.edit_text("⏳ Начинаю загрузку...")
+    await msg.answer("⏳ Загружаю видео...")
 
     try:
-        def progress_hook(d):
-            if d['status'] == 'downloading':
-                total = d.get("total_bytes") or d.get("total_bytes_estimate")
-                downloaded = d.get("downloaded_bytes", 0)
+        with YoutubeDL({
+            'format': 'best[height<=720]',
+            'quiet': True,
+            'no_warnings': True
+        }) as ydl:
 
-                if total:
-                    percent = int(downloaded / total * 100)
-                    asyncio.create_task(
-                        wait.edit_text(f"📥 Загрузка: {percent}%")
-                    )
-
-        ydl_opts = {
-            "format": fmt,
-            "merge_output_format": "mp4",
-            "outtmpl": "video.%(ext)s",
-
-            # 🔥 cookies для обхода "Sign in to confirm you're not a bot"
-            "cookiefile": "cookies.txt",
-
-            "noplaylist": True,
-            "quiet": True,
-            "no_warnings": True,
-
-            "extractor_args": {
-                "youtube": {
-                    "player_client": ["android", "web"]
-                }
-            },
-
-            "force_ipv4": True,
-            "retries": 20,
-            "fragment_retries": 20,
-            "socket_timeout": 30,
-
-            "progress_hooks": [progress_hook]
-        }
-
-        with YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-
-            if not info:
-                await wait.edit_text("⚠️ Не удалось получить данные видео")
-                return
-
-            filename = ydl.prepare_filename(info)
+            info = ydl.extract_info(url, download=False)
+            video_url = info.get("url")
             title = info.get("title", "Видео")[:100]
 
-            if not os.path.exists(filename):
-                base = os.path.splitext(filename)[0]
-                for ext in [".mp4", ".mkv", ".webm"]:
-                    if os.path.exists(base + ext):
-                        filename = base + ext
-                        break
-
-        video = FSInputFile(filename)
-
-        await callback.message.answer_video(
-            video,
-            caption=f"🎬 {title}"
-        )
-
-        await wait.delete()
-
-        if os.path.exists(filename):
-            os.remove(filename)
+            await msg.answer_video(
+                video_url,
+                caption=f"🎬 {title}"
+            )
 
     except Exception as e:
         logging.error(f"YouTube ошибка: {e}")
-        await wait.edit_text(f"⚠️ ОШИБКА:\n{repr(e)}")
+        await msg.answer("⚠️ Не удалось скачать видео")
+
+
 # ================= КАЛЬКУЛЯТОР =================
 @dp.message(
     lambda msg:
@@ -263,7 +149,6 @@ async def calculator(msg: types.Message):
         await msg.answer(f"🧮 `{result}`", parse_mode="Markdown")
     else:
         await msg.answer("❌ Ошибка")
-
 
 # ================= ГЛОБАЛЬНЫЕ ОШИБКИ =================
 @dp.errors()
