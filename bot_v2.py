@@ -129,7 +129,10 @@ async def youtube(msg: types.Message):
             },
 
             "force_ipv4": True,
-            "js_runtimes": ["deno"],
+
+"js_runtimes": {
+    "deno": {}
+},
             "retries": 10,
             "socket_timeout": 30,
         }
