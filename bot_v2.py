@@ -116,8 +116,8 @@ async def youtube(msg: types.Message):
 
     try:
         ydl_opts = {
-            "format": "best",
-            "outtmpl": "video.%(ext)s",
+           "format": "bv*+ba/b",
+           "outtmpl": "video.%(ext)s",
 
             "cookiefile": "cookies.txt",
 
