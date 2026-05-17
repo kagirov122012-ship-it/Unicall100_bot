@@ -4,11 +4,14 @@ import random
 import string
 import logging
 import aiohttp
+import qrcode
+
+from PIL import Image
+from pyzbar.pyzbar import decode
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.types import ReplyKeyboardRemove
-from yt_dlp import YoutubeDL
 
 # ================= ЛОГИ =================
 logging.basicConfig(
@@ -71,16 +74,27 @@ def calc(expr):
 # ================= /start =================
 @dp.message(Command("start"))
 async def start(msg: types.Message):
+    await msg.answer(" ", reply_markup=ReplyKeyboardRemove())
+
     await msg.answer(
-        "🤖 Бот запущен\n\n"
-        "📥 YouTube — отправь ссылку\n"
+        "🤖 Helper Tools Bot\n\n"
+        "📷 /qr текст — создать QR\n"
+        "📸 Отправь фото QR — расшифрую\n"
         "/course — курс валют\n"
-        "/pass — пароль"
+        "/pass — пароль\n"
+        "🧮 Пример: 2+2"
     )
+
+
 # ================= /help =================
 @dp.message(Command("help"))
 async def help_cmd(msg: types.Message):
-    await msg.answer("/course /pass\nИли отправь YouTube ссылку или пример")
+    await msg.answer(
+        "/qr текст — создать QR\n"
+        "/course — курс валют\n"
+        "/pass — пароль\n"
+        "или отправь пример: 2+2"
+    )
 
 
 # ================= /course =================
@@ -103,37 +117,65 @@ async def password(msg: types.Message):
         parse_mode="Markdown"
     )
 
-# ================= YOUTUBE =================
-@dp.message(lambda msg: msg.text and ('youtube.com' in msg.text or 'youtu.be' in msg.text))
-async def youtube(msg: types.Message):
-    url = msg.text.strip()
-    wait = await msg.answer("⏳ Загружаю видео...")
 
+# ================= QR GENERATOR =================
+@dp.message(Command("qr"))
+async def qr_help(msg: types.Message):
+    await msg.answer("Напиши: /qr текст_или_ссылка")
+
+
+@dp.message(lambda msg: msg.text and msg.text.startswith("/qr "))
+async def make_qr(msg: types.Message):
+    text = msg.text[4:].strip()
+
+    img = qrcode.make(text)
+    img.save("qr.png")
+
+    photo = types.FSInputFile("qr.png")
+    await msg.answer_photo(photo, caption="✅ QR готов")
+
+    os.remove("qr.png")
+
+
+# ================= QR SCANNER =================
+@dp.message(lambda msg: msg.photo)
+async def scan_qr(msg: types.Message):
     try:
-        ydl_opts = {
-    "format": "best",
-    "cookiefile": "cookies.txt",
-    "quiet": True,
-    "no_warnings": True,
-    "noplaylist": True
-}
+        file = await bot.get_file(msg.photo[-1].file_id)
+        await bot.download_file(file.file_path, "scan.jpg")
 
-        with YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
+        img = Image.open("scan.jpg")
+        result = decode(img)
 
-            video_url = info.get("url")
-            title = info.get("title", "Видео")[:100]
+        os.remove("scan.jpg")
 
-            await msg.answer_video(
-                video_url,
-                caption=f"🎬 {title}"
-            )
-
-        await wait.delete()
+        if result:
+            text = result[0].data.decode("utf-8")
+            await msg.answer(f"📷 QR:\n{text}")
+        else:
+            await msg.answer("❌ QR не найден")
 
     except Exception as e:
-        logging.error(f"YouTube ошибка: {e}")
-        await wait.edit_text("⚠️ Не удалось скачать видео")
+        logging.error(f"QR ошибка: {e}")
+        await msg.answer("⚠️ Ошибка чтения QR")
+
+
+# ================= КАЛЬКУЛЯТОР =================
+@dp.message(
+    lambda msg:
+    msg.text
+    and any(op in msg.text for op in "+-*/")
+    and not msg.text.startswith("/")
+)
+async def calculator(msg: types.Message):
+    result = calc(msg.text.strip())
+
+    if result is not None:
+        await msg.answer(f"🧮 `{result}`", parse_mode="Markdown")
+    else:
+        await msg.answer("❌ Ошибка")
+
+
 # ================= ГЛОБАЛЬНЫЕ ОШИБКИ =================
 @dp.errors()
 async def error_handler(event):
