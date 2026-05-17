@@ -69,6 +69,12 @@ def calc(expr):
 
 
 # ================= /start =================
+@dp.message(Command("clean"))
+async def clean(msg: types.Message):
+    await msg.answer(
+        "🧹 Меню удалено",
+        reply_markup=ReplyKeyboardRemove()
+    )
 
 @dp.message(Command("start"))
 async def start(msg: types.Message):
