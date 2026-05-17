@@ -44,9 +44,24 @@ async def get_mail_messages(login, domain):
         f"https://www.1secmail.com/api/v1/"
         f"?action=getMessages&login={login}&domain={domain}"
     )
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url, timeout=15) as resp:
-            return await resp.json()
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                url,
+                timeout=15,
+                headers={"User-Agent": "Mozilla/5.0"}
+            ) as resp:
+
+                if resp.status != 200:
+                    raise Exception(f"HTTP {resp.status}")
+
+                data = await resp.json(content_type=None)
+                return data
+
+    except Exception as e:
+        logging.error(f"TempMail API error: {e}")
+        return []
 
 # ================= КУРС ВАЛЮТ =================
 async def get_rates():
