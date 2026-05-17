@@ -7,7 +7,7 @@ import aiohttp
 import qrcode
 
 from aiogram import Bot, Dispatcher, types
-from aiogram.filters import Command
+from aiogram.filters import Command, CommandObject
 from aiogram.types import ReplyKeyboardRemove
 
 # ================= ЛОГИ =================
@@ -72,10 +72,9 @@ def calc(expr):
 @dp.message(Command("start"))
 async def start(msg: types.Message):
     await msg.answer(" ", reply_markup=ReplyKeyboardRemove())
-
     await msg.answer(
         "🤖 Helper Tools Bot\n\n"
-        "📷 /qr текст — создать QR\n"
+        "📷 /qr текст или ссылка — создать QR\n"
         "/course — курс валют\n"
         "/pass — пароль\n"
         "🧮 Пример: 2+2"
@@ -86,7 +85,7 @@ async def start(msg: types.Message):
 @dp.message(Command("help"))
 async def help_cmd(msg: types.Message):
     await msg.answer(
-        "/qr текст — создать QR\n"
+        "/qr текст_или_ссылка — создать QR\n"
         "/course — курс валют\n"
         "/pass — пароль\n"
         "или отправь пример: 2+2"
@@ -101,12 +100,11 @@ async def course(msg: types.Message):
 
 # ================= /pass =================
 @dp.message(Command("pass"))
-async def password(msg: types.Message):
-    parts = msg.text.split()
+async def password(msg: types.Message, command: CommandObject):
     length = 12
 
-    if len(parts) > 1 and parts[1].isdigit():
-        length = min(int(parts[1]), 32)
+    if command.args and command.args.isdigit():
+        length = min(int(command.args), 32)
 
     await msg.answer(
         f"🔐 `{generate_password(length)}`",
@@ -114,16 +112,15 @@ async def password(msg: types.Message):
     )
 
 
-# ================= QR GENERATOR =================
+# ================= QR =================
 @dp.message(Command("qr"))
-async def qr_help(msg: types.Message):
-    await msg.answer("Напиши: /qr текст_или_ссылка")
+async def make_qr(msg: types.Message, command: CommandObject):
+    if not command.args:
+        await msg.answer("Напиши так:\n/qr текст_или_ссылка")
+        return
 
-
-@dp.message(lambda msg: msg.text and msg.text.startswith("/qr "))
-async def make_qr(msg: types.Message):
     try:
-        text = msg.text[4:].strip()
+        text = command.args.strip()
 
         img = qrcode.make(text)
         img.save("qr.png")
