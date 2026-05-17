@@ -116,36 +116,49 @@ async def youtube(msg: types.Message):
 
     try:
         ydl_opts = {
-           "format": "bv*+ba/b",
-           "outtmpl": "video.%(ext)s",
+            # 🔥 максимально стабильный формат (без ошибки format not available)
+            "format": "bestvideo+bestaudio/best",
 
+            "outtmpl": "video.%(ext)s",
+            "merge_output_format": "mp4",
+
+            # cookies (если есть)
             "cookiefile": "cookies.txt",
 
+            "noplaylist": True,
             "quiet": True,
             "no_warnings": True,
-            "noplaylist": True,
 
+            # 🔥 обход ограничений YouTube
             "extractor_args": {
                 "youtube": {
-                    "player_client": ["android", "web"]
+                    "player_client": ["android", "web", "tv"]
                 }
             },
 
+            # 🔥 стабильность
             "force_ipv4": True,
-            "retries": 20,
-            "fragment_retries": 20,
+            "retries": 10,
+            "fragment_retries": 10,
             "socket_timeout": 30,
+
+            # 🔥 если что-то не так — не падаем сразу
+            "ignoreerrors": False,
         }
 
         with YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
 
+            if not info:
+                await wait.edit_text("⚠️ Не удалось получить данные видео")
+                return
+
             filename = ydl.prepare_filename(info)
             title = info.get("title", "Видео")[:100]
 
+            # 🔥 поиск реального файла
             if not os.path.exists(filename):
                 base = os.path.splitext(filename)[0]
-
                 for ext in [".mp4", ".mkv", ".webm"]:
                     if os.path.exists(base + ext):
                         filename = base + ext
@@ -160,6 +173,7 @@ async def youtube(msg: types.Message):
 
         await wait.delete()
 
+        # чистим файл
         if os.path.exists(filename):
             os.remove(filename)
 
