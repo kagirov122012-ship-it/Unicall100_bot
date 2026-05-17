@@ -162,10 +162,9 @@ async def youtube(msg: types.Message):
         if os.path.exists(filename):
             os.remove(filename)
 
-    except Exception as e:
-        logging.error(f"YouTube ошибка: {e}")
-        await wait.edit_text("⚠️ Не удалось скачать видео")
-
+except Exception as e:
+    logging.error(f"YouTube ошибка: {e}")
+    await wait.edit_text(f"⚠️ ОШИБКА:\n{repr(e)}")
 # ================= КАЛЬКУЛЯТОР =================
 @dp.message(
     lambda msg:
