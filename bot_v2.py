@@ -208,6 +208,7 @@ async def checkmail(msg: types.Message):
         "💡 Возможно сервис не поддерживает эту почту.\n"
         "Попробуй новую через /tempmail"
     )
+
 # ================= SHORT =================
 @dp.message(Command("short"))
 async def short_link(msg: types.Message, command: CommandObject):
@@ -216,14 +217,16 @@ async def short_link(msg: types.Message, command: CommandObject):
         return
 
     try:
+        url = command.args.strip()
+
         async with aiohttp.ClientSession() as session:
             async with session.get(
-                f"https://is.gd/create.php?format=simple&url={command.args.strip()}",
+                f"https://tinyurl.com/api-create.php?url={url}",
                 timeout=15
             ) as resp:
                 shorted = await resp.text()
 
-        if shorted.startswith("Error:"):
+        if "Error" in shorted or "http" not in shorted:
             await msg.answer(
                 "⚠️ Не удалось сократить ссылку.\n"
                 "Проверь правильность ссылки или попробуй другую."
@@ -236,8 +239,7 @@ async def short_link(msg: types.Message, command: CommandObject):
         await msg.answer(
             "⚠️ Не удалось сократить ссылку.\n"
             "Сервис временно недоступен, попробуй позже."
-        )# ================= SHORT =================
-
+        )
 # ================= CALC =================
 @dp.message(
     lambda msg:
