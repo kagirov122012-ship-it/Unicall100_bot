@@ -71,14 +71,11 @@ def calc(expr):
 # ================= /start =================
 @dp.message(Command("start"))
 async def start(msg: types.Message):
-    await msg.answer(" ", reply_markup=ReplyKeyboardRemove())
-
     await msg.answer(
-        "🤖 Бот-помощник\n\n"
-        "📥 YouTube ссылка — скачаю видео\n"
+        "🤖 Бот запущен\n\n"
+        "📥 YouTube — отправь ссылку\n"
         "/course — курс валют\n"
-        "/pass — пароль\n"
-        "🧮 Пример 2+2"
+        "/pass — пароль"
     )
 # ================= /help =================
 @dp.message(Command("help"))
@@ -107,79 +104,86 @@ async def password(msg: types.Message):
     )
 
 
+
 # ================= YOUTUBE =================
 @dp.message(lambda msg: msg.text and ('youtube.com' in msg.text or 'youtu.be' in msg.text))
 async def youtube(msg: types.Message):
     url = msg.text.strip()
 
-    wait = await msg.answer("⏳ Загружаю видео...")
+    wait = await msg.answer("⏳ Обрабатываю видео...")
 
     try:
+        # 🔥 СНАЧАЛА пытаемся скачать (самый стабильный способ)
         ydl_opts = {
-            # 🔥 максимально стабильный формат (без ошибки format not available)
-            "format": "bestvideo+bestaudio/best",
-
+            "format": "bestvideo+bestaudio/best/best",
             "outtmpl": "video.%(ext)s",
-            "merge_output_format": "mp4",
 
-            # cookies (если есть)
             "cookiefile": "cookies.txt",
+
+            "merge_output_format": "mp4",
 
             "noplaylist": True,
             "quiet": True,
             "no_warnings": True,
 
-            # 🔥 обход ограничений YouTube
             "extractor_args": {
                 "youtube": {
                     "player_client": ["android", "web", "tv"]
                 }
             },
 
-            # 🔥 стабильность
             "force_ipv4": True,
-            "retries": 10,
-            "fragment_retries": 10,
+            "retries": 15,
+            "fragment_retries": 15,
             "socket_timeout": 30,
-
-            # 🔥 если что-то не так — не падаем сразу
-            "ignoreerrors": False,
         }
+
+        filename = None
+        title = "Видео"
 
         with YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
 
-            if not info:
-                await wait.edit_text("⚠️ Не удалось получить данные видео")
+            if info:
+                title = info.get("title", "Видео")[:100]
+                filename = ydl.prepare_filename(info)
+
+                # поиск файла
+                if not os.path.exists(filename):
+                    base = os.path.splitext(filename)[0]
+                    for ext in [".mp4", ".mkv", ".webm", ".m4a"]:
+                        if os.path.exists(base + ext):
+                            filename = base + ext
+                            break
+
+        # 🔥 если файл не скачался — fallback (стрим)
+        if not filename or not os.path.exists(filename):
+            await wait.edit_text("⚠️ Переход в режим fallback...")
+
+            with YoutubeDL({"quiet": True}) as ydl:
+                info = ydl.extract_info(url, download=False)
+                stream_url = info["url"]
+                title = info.get("title", "Видео")[:100]
+
+                await msg.answer_video(stream_url, caption=f"🎬 {title}")
+                await wait.delete()
                 return
-
-            filename = ydl.prepare_filename(info)
-            title = info.get("title", "Видео")[:100]
-
-            # 🔥 поиск реального файла
-            if not os.path.exists(filename):
-                base = os.path.splitext(filename)[0]
-                for ext in [".mp4", ".mkv", ".webm"]:
-                    if os.path.exists(base + ext):
-                        filename = base + ext
-                        break
 
         video = types.FSInputFile(filename)
 
-        await msg.answer_video(
-            video,
-            caption=f"🎬 {title}"
-        )
+        await msg.answer_video(video, caption=f"🎬 {title}")
 
         await wait.delete()
 
-        # чистим файл
-        if os.path.exists(filename):
+        try:
             os.remove(filename)
+        except:
+            pass
 
     except Exception as e:
         logging.error(f"YouTube ошибка: {e}")
-        await wait.edit_text(f"⚠️ ОШИБКА:\n{repr(e)}")
+        await wait.edit_text(f"⚠️ YouTube ошибка:\n{repr(e)}")
+
 # ================= КАЛЬКУЛЯТОР =================
 @dp.message(
     lambda msg:
