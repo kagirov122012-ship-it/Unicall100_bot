@@ -145,6 +145,7 @@ async def youtube(msg: types.Message):
 
             if not os.path.exists(filename):
                 base = os.path.splitext(filename)[0]
+
                 for ext in [".mp4", ".mkv", ".webm"]:
                     if os.path.exists(base + ext):
                         filename = base + ext
@@ -162,9 +163,9 @@ async def youtube(msg: types.Message):
         if os.path.exists(filename):
             os.remove(filename)
 
-except Exception as e:
-    logging.error(f"YouTube ошибка: {e}")
-    await wait.edit_text(f"⚠️ ОШИБКА:\n{repr(e)}")
+    except Exception as e:
+        logging.error(f"YouTube ошибка: {e}")
+        await wait.edit_text(f"⚠️ ОШИБКА:\n{repr(e)}")
 # ================= КАЛЬКУЛЯТОР =================
 @dp.message(
     lambda msg:
