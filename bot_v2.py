@@ -7,7 +7,6 @@ import aiohttp
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
-from aiogram.types import ReplyKeyboardRemove
 from yt_dlp import YoutubeDL
 
 # ================= ЛОГИ =================
@@ -76,8 +75,7 @@ async def start(msg: types.Message):
         "📥 YouTube ссылка — скачаю видео\n"
         "/course — курс валют\n"
         "/pass — пароль\n"
-        "🧮 Пример 2+2",
-        reply_markup=ReplyKeyboardRemove()
+        "🧮 Пример 2+2"
     )
 
 
@@ -151,7 +149,6 @@ async def calculator(msg: types.Message):
         await msg.answer(f"🧮 `{result}`", parse_mode="Markdown")
     else:
         await msg.answer("❌ Ошибка")
-
 
 # ================= ГЛОБАЛЬНЫЕ ОШИБКИ =================
 @dp.errors()
