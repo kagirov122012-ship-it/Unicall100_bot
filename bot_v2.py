@@ -113,9 +113,9 @@ async def youtube(msg: types.Message):
     wait = await msg.answer("⏳ Обрабатываю видео...")
 
     try:
-        # 🔥 СНАЧАЛА пытаемся скачать (самый стабильный способ)
+        # 🔥 САМЫЙ СТАБИЛЬНЫЙ ВАРИАНТ (3 уровня fallback)
         ydl_opts = {
-            "format": "bestvideo+bestaudio/best/best",
+            "format": "best[ext=mp4]/best/bestvideo+bestaudio/best",
             "outtmpl": "video.%(ext)s",
 
             "cookiefile": "cookies.txt",
@@ -144,30 +144,24 @@ async def youtube(msg: types.Message):
         with YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
 
-            if info:
-                title = info.get("title", "Видео")[:100]
-                filename = ydl.prepare_filename(info)
-
-                # поиск файла
-                if not os.path.exists(filename):
-                    base = os.path.splitext(filename)[0]
-                    for ext in [".mp4", ".mkv", ".webm", ".m4a"]:
-                        if os.path.exists(base + ext):
-                            filename = base + ext
-                            break
-
-        # 🔥 если файл не скачался — fallback (стрим)
-        if not filename or not os.path.exists(filename):
-            await wait.edit_text("⚠️ Переход в режим fallback...")
-
-            with YoutubeDL({"quiet": True}) as ydl:
-                info = ydl.extract_info(url, download=False)
-                stream_url = info["url"]
-                title = info.get("title", "Видео")[:100]
-
-                await msg.answer_video(stream_url, caption=f"🎬 {title}")
-                await wait.delete()
+            if not info:
+                await wait.edit_text("⚠️ Не удалось получить видео")
                 return
+
+            title = info.get("title", "Видео")[:100]
+            filename = ydl.prepare_filename(info)
+
+            # ищем реальный файл
+            if not os.path.exists(filename):
+                base = os.path.splitext(filename)[0]
+                for ext in [".mp4", ".mkv", ".webm"]:
+                    if os.path.exists(base + ext):
+                        filename = base + ext
+                        break
+
+        if not filename or not os.path.exists(filename):
+            await wait.edit_text("⚠️ Видео недоступно для скачивания")
+            return
 
         video = types.FSInputFile(filename)
 
@@ -182,8 +176,7 @@ async def youtube(msg: types.Message):
 
     except Exception as e:
         logging.error(f"YouTube ошибка: {e}")
-        await wait.edit_text(f"⚠️ YouTube ошибка:\n{repr(e)}")
-
+        await wait.edit_text(f"⚠️ ОШИБКА:\n{repr(e)}")
 # ================= КАЛЬКУЛЯТОР =================
 @dp.message(
     lambda msg:
