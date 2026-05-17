@@ -111,28 +111,59 @@ async def password(msg: types.Message):
 async def youtube(msg: types.Message):
     url = msg.text.strip()
 
-    await msg.answer("⏳ Загружаю видео...")
+    wait = await msg.answer("⏳ Загружаю видео...")
 
     try:
-        with YoutubeDL({
-            'format': 'best[height<=720]',
-            'quiet': True,
-            'no_warnings': True
-        }) as ydl:
+        ydl_opts = {
+            "format": "best",
+            "outtmpl": "video.%(ext)s",
 
-            info = ydl.extract_info(url, download=False)
-            video_url = info.get("url")
+            "cookiefile": "cookies.txt",
+
+            "quiet": True,
+            "no_warnings": True,
+            "noplaylist": True,
+
+            "extractor_args": {
+                "youtube": {
+                    "player_client": ["android", "web"]
+                }
+            },
+
+            "force_ipv4": True,
+            "retries": 20,
+            "fragment_retries": 20,
+            "socket_timeout": 30,
+        }
+
+        with YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
+
+            filename = ydl.prepare_filename(info)
             title = info.get("title", "Видео")[:100]
 
-            await msg.answer_video(
-                video_url,
-                caption=f"🎬 {title}"
-            )
+            if not os.path.exists(filename):
+                base = os.path.splitext(filename)[0]
+                for ext in [".mp4", ".mkv", ".webm"]:
+                    if os.path.exists(base + ext):
+                        filename = base + ext
+                        break
+
+        video = types.FSInputFile(filename)
+
+        await msg.answer_video(
+            video,
+            caption=f"🎬 {title}"
+        )
+
+        await wait.delete()
+
+        if os.path.exists(filename):
+            os.remove(filename)
 
     except Exception as e:
         logging.error(f"YouTube ошибка: {e}")
-        await msg.answer("⚠️ Не удалось скачать видео")
-
+        await wait.edit_text("⚠️ Не удалось скачать видео")
 
 # ================= КАЛЬКУЛЯТОР =================
 @dp.message(
