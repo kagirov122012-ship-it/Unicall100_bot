@@ -7,6 +7,7 @@ import aiohttp
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
+from aiogram.types import ReplyKeyboardRemove
 from yt_dlp import YoutubeDL
 
 # ================= ЛОГИ =================
@@ -68,15 +69,15 @@ def calc(expr):
 
 
 # ================= /start =================
+
 @dp.message(Command("start"))
 async def start(msg: types.Message):
-    # сначала удаляем старую клавиатуру
-    await msg.answer(
-        "🧹 Убираю старое меню...",
+    await bot.send_message(
+        msg.chat.id,
+        "🧹 Удаляю старое меню...",
         reply_markup=ReplyKeyboardRemove()
     )
 
-    # потом отправляем обычный старт
     await msg.answer(
         "🤖 Бот-помощник\n\n"
         "📥 YouTube ссылка — скачаю видео\n"
