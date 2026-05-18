@@ -14,7 +14,14 @@ from aiogram.types import ReplyKeyboardRemove
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s | %(levelname)s | %(message)s"
-)
+from aiogram.types import ReplyKeyboardRemove
+
+@dp.message(Command("clean"))
+async def clean_keyboard(msg: types.Message):
+    await msg.answer(
+        "✅ Клавиатура очищена",
+        reply_markup=ReplyKeyboardRemove()
+    ))
 
 # ================= ТОКЕНЫ =================
 TOKEN = os.getenv("BOT_TOKEN")
@@ -88,10 +95,18 @@ def calc(expr):
         return None
 
 # ================= START =================
-await message.answer(
-    "Добро пожаловать! Используйте команды через /menu",
-    reply_markup=ReplyKeyboardRemove()
-)
+@dp.message(Command("start"))
+async def start(msg: types.Message):
+    await msg.answer(
+        "🚀 UTILITY HUB\n\n"
+        "📷 /qr — создать QR\n"
+        "📩 /tempmail — временная почта\n"
+        "📬 /checkmail — проверить почту\n"
+        "🔗 /short — сократить ссылку\n"
+        "💰 /course — курс валют\n"
+        "🔐 /pass — пароль\n"
+        "🧮 Пример: 2+2"
+    ))
 # ================= HELP =================
 @dp.message(Command("help"))
 async def help_cmd(msg: types.Message):
