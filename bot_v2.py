@@ -88,21 +88,10 @@ def calc(expr):
         return None
 
 # ================= START =================
-@dp.message(Command("start"))
-async def start(msg: types.Message):
-    await msg.answer(
-        "🚀 UTILITY HUB\n\n"
-        "📷 /qr — создать QR\n"
-        "📩 /tempmail — временная почта\n"
-        "📬 /checkmail — проверить почту\n"
-        "🔗 /short — сократить ссылку\n"
-        "🌤 /weather — погода\n"
-        "💰 /course — курс валют\n"
-        "🔐 /pass — пароль\n"
-        "🧮 Пример: 2+2",
-        reply_markup=ReplyKeyboardRemove()
-    )
-
+await message.answer(
+    "Добро пожаловать! Используйте команды через /menu",
+    reply_markup=ReplyKeyboardRemove()
+)
 # ================= HELP =================
 @dp.message(Command("help"))
 async def help_cmd(msg: types.Message):
