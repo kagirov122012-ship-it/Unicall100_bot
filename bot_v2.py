@@ -14,18 +14,9 @@ from aiogram.types import ReplyKeyboardRemove
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s | %(levelname)s | %(message)s"
-from aiogram.types import ReplyKeyboardRemove
+)
 
-    )
-
-@dp.message(Command("clean"))
-async def clean_keyboard(msg: types.Message):
-    await msg.answer(
-        "✅ Клавиатура очищена",
-        reply_markup=ReplyKeyboardRemove()
-    )
-
-# ================= ТОКЕНЫ =================
+# ================= ТОКЕН =================
 TOKEN = os.getenv("BOT_TOKEN")
 
 if not TOKEN:
@@ -54,14 +45,14 @@ async def get_mail_messages(login, domain):
     url = f"https://www.1secmail.com/api/v1/?action=getMessages&login={login}&domain={domain}"
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.get(url, timeout=15, headers={"User-Agent": "Mozilla/5.0"}) as resp:
+            async with session.get(url, timeout=15) as resp:
                 if resp.status != 200:
                     return []
                 return await resp.json(content_type=None)
     except:
         return []
 
-# ================= ПАРОЛИ =================
+# ================= ПАРОЛЬ =================
 def generate_password(length=12):
     chars = string.ascii_letters + string.digits + "!@#$%^&*"
     return ''.join(random.choice(chars) for _ in range(length))
@@ -107,8 +98,19 @@ async def start(msg: types.Message):
         "🔗 /short — сократить ссылку\n"
         "💰 /course — курс валют\n"
         "🔐 /pass — пароль\n"
-        "🧮 Пример: 2+2"
+        "🧹 /clean — убрать старые кнопки\n"
+        "🧮 Пример: 2+2",
+        reply_markup=ReplyKeyboardRemove()
     )
+
+# ================= CLEAN =================
+@dp.message(Command("clean"))
+async def clean_keyboard(msg: types.Message):
+    await msg.answer(
+        "✅ Старые кнопки удалены",
+        reply_markup=ReplyKeyboardRemove()
+    )
+
 # ================= HELP =================
 @dp.message(Command("help"))
 async def help_cmd(msg: types.Message):
@@ -117,9 +119,9 @@ async def help_cmd(msg: types.Message):
         "/tempmail\n"
         "/checkmail\n"
         "/short ссылка\n"
-        "/weather город\n"
         "/course\n"
         "/pass\n"
+        "/clean\n"
         "или пример: 2+2"
     )
 
@@ -157,11 +159,7 @@ async def make_qr(msg: types.Message, command: CommandObject):
 @dp.message(Command("tempmail"))
 async def tempmail(msg: types.Message):
     waiting_service[msg.from_user.id] = True
-    await msg.answer(
-        "Где регистрируешься?\n\n"
-        "Напиши: tiktok / discord / steam / telegram\n"
-        "или другое слово"
-    )
+    await msg.answer("Где регистрируешься?\nНапиши: tiktok / discord / steam / telegram")
 
 @dp.message(lambda msg: msg.from_user.id in waiting_service)
 async def choose_service(msg: types.Message):
@@ -211,8 +209,7 @@ async def checkmail(msg: types.Message):
 
     await wait.edit_text(
         "📭 Письма не пришли.\n\n"
-        "💡 Возможно сервис не поддерживает эту почту.\n"
-        "Попробуй новую через /tempmail"
+        "💡 Возможно сервис не поддерживает эту почту."
     )
 
 # ================= SHORT =================
@@ -223,11 +220,9 @@ async def short_link(msg: types.Message, command: CommandObject):
         return
 
     try:
-        url = command.args.strip()
-
         async with aiohttp.ClientSession() as session:
             async with session.get(
-                f"https://tinyurl.com/api-create.php?url={url}",
+                f"https://tinyurl.com/api-create.php?url={command.args.strip()}",
                 timeout=15
             ) as resp:
                 shorted = await resp.text()
@@ -242,10 +237,8 @@ async def short_link(msg: types.Message, command: CommandObject):
         await msg.answer(f"🔗 Короткая ссылка:\n{shorted}")
 
     except:
-        await msg.answer(
-            "⚠️ Не удалось сократить ссылку.\n"
-            "Сервис временно недоступен, попробуй позже."
-        )
+        await msg.answer("⚠️ Не удалось сократить ссылку.")
+
 # ================= CALC =================
 @dp.message(
     lambda msg:
@@ -260,12 +253,6 @@ async def calculator(msg: types.Message):
         await msg.answer(f"🧮 `{result}`", parse_mode="Markdown")
     else:
         await msg.answer("❌ Ошибка")
-
-# ================= ERROR =================
-@dp.errors()
-async def error_handler(event):
-    logging.error(f"Ошибка: {event.exception}")
-    return True
 
 # ================= RUN =================
 async def main():
