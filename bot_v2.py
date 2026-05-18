@@ -257,6 +257,10 @@ async def calculator(msg: types.Message):
 # ================= RUN =================
 async def main():
     logging.info("🚀 Бот запущен")
+
+    await bot.delete_webhook(drop_pending_updates=True)
+    await bot.set_chat_menu_button(menu_button=None)
+
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
