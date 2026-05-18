@@ -106,7 +106,7 @@ async def start(msg: types.Message):
         "💰 /course — курс валют\n"
         "🔐 /pass — пароль\n"
         "🧮 Пример: 2+2"
-    ))
+    )
 # ================= HELP =================
 @dp.message(Command("help"))
 async def help_cmd(msg: types.Message):
