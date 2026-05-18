@@ -16,6 +16,8 @@ logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(message)s"
 from aiogram.types import ReplyKeyboardRemove
 
+    )
+
 @dp.message(Command("clean"))
 async def clean_keyboard(msg: types.Message):
     await msg.answer(
