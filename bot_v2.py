@@ -21,7 +21,7 @@ async def clean_keyboard(msg: types.Message):
     await msg.answer(
         "✅ Клавиатура очищена",
         reply_markup=ReplyKeyboardRemove()
-    ))
+    )
 
 # ================= ТОКЕНЫ =================
 TOKEN = os.getenv("BOT_TOKEN")
