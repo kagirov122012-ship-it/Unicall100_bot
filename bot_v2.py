@@ -98,16 +98,7 @@ async def start(msg: types.Message):
         "🔗 /short — сократить ссылку\n"
         "💰 /course — курс валют\n"
         "🔐 /pass — пароль\n"
-        "🧹 /clean — убрать старые кнопки\n"
         "🧮 Пример: 2+2",
-        reply_markup=ReplyKeyboardRemove()
-    )
-
-# ================= CLEAN =================
-@dp.message(Command("clean"))
-async def clean_keyboard(msg: types.Message):
-    await msg.answer(
-        "✅ Старые кнопки удалены",
         reply_markup=ReplyKeyboardRemove()
     )
 
@@ -121,7 +112,6 @@ async def help_cmd(msg: types.Message):
         "/short ссылка\n"
         "/course\n"
         "/pass\n"
-        "/clean\n"
         "или пример: 2+2"
     )
 

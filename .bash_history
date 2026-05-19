@@ -259,3 +259,36 @@ git add .
 git commit -m "sync bot_v2 into bot.py"
 git push
 nano bot_v2.py
+ls
+nano bot_v2.py
+git add .
+git commit -m "remove webapp keyboard"
+git push
+nano bot_v2.py
+git add .
+git commit -m "add clean keyboard"
+git push
+nano bot_v2.py
+git add .
+git commit -m "add clean keyboard"
+git push
+nano bot_v2.py
+git add .
+git commit -m "add clean keyboard"
+git push
+nano bot_v2.py
+git add .
+git commit -m "fix logging bracket"
+git push
+nano bot_v2.py
+git add .
+git commit -m "full clean keyboard fix"
+git push
+kagirov122012-ship-it
+git add .
+git commit -m "full clean keyboard fix"
+git push
+nano bot_v2.py
+git add .
+git commit -m "force remove open app button"
+git push
